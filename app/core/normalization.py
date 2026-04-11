@@ -11,7 +11,11 @@ class SomaticNormalizer:
         if df.empty:
             return df
         
-        local_tz = str(get_localzone()) # e.g., 'America/Los_Angeles'
+        try:
+            local_tz = str(get_localzone()) # e.g., 'America/Los_Angeles'
+        except Exception as e:
+            print(f"--- [DEBUG] Timezone detection failed, falling back to UTC: {e} ---")
+            local_tz = 'UTC'
         
         # 1. Convert index to datetime if it isn't
         if not pd.api.types.is_datetime64_any_dtype(df.index):
