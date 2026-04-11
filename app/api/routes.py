@@ -96,3 +96,30 @@ async def trigger_sync():
     except Exception as e:
         print(f"Sync error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/db-status")
+async def db_status():
+    """
+    Debug endpoint to check database integrity and record counts.
+    """
+    import os
+    db = get_db()
+    db._ensure_initialized()
+    
+    status = {
+        "db_path": db.db_path,
+        "exists": os.path.exists(db.db_path) if db.db_path else False,
+        "size_bytes": os.path.getsize(db.db_path) if db.db_path and os.path.exists(db.db_path) else 0,
+        "record_counts": {}
+    }
+    
+    if status["exists"]:
+        import sqlite3
+        try:
+            with sqlite3.connect(db.db_path) as conn:
+                cursor = conn.execute("SELECT metric, count(*) FROM biometrics GROUP BY metric")
+                status["record_counts"] = {row[0]: row[1] for row in cursor.fetchall()}
+        except Exception as e:
+            status["error"] = str(e)
+            
+    return status
