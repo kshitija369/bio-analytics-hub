@@ -50,3 +50,4 @@ tzlocal==5.3.1
 urllib3==2.6.3
 uvicorn==0.39.0
 zipp==3.23.0
+gunicorn==23.0.0

@@ -1,9 +1,8 @@
 from fastapi import FastAPI
 import os
 
-# --- [ULTRA-SLIM STARTUP] ---
-# No heavy imports (pandas, plotly, etc.) at the top level.
-# This guarantees the port binds in < 1 second.
+# --- [PRODUCTION STARTUP] ---
+# Slim instantiation for Cloud Run health checks.
 
 app = FastAPI(title="Witness State Monitoring")
 
@@ -25,12 +24,11 @@ def include_deferred_router():
         print(f"Deferred router load error: {e}")
         return False
 
-# Attempt to include router, but don't let it crash the startup
+# Trigger the router load
 include_deferred_router()
 
 def run_pipeline(hours_back=168, practice_sessions=None):
     """Pipeline logic (only runs in CLI mode)"""
-    # Imports moved inside to protect server startup
     from app.providers.oura import OuraProvider
     from app.core.database import SomaticDatabase
     from app.core.normalization import SomaticNormalizer
@@ -68,7 +66,7 @@ if __name__ == "__main__":
     
     if mode == "server":
         port = int(os.environ.get("PORT", 8080))
-        uvicorn.run(app, host="0.0.0.0", port=port)
+        uvicorn.run("app.main:app", host="0.0.0.0", port=port, reload=False)
     else:
         from datetime import datetime, timedelta, timezone
         now = datetime.now(timezone.utc)

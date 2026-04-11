@@ -2,7 +2,7 @@ import pandas as pd
 from typing import List, Dict, Any
 from datetime import datetime
 
-from tzlocal import get_localzone
+import pytz
 
 class SomaticNormalizer:
     @staticmethod
@@ -11,11 +11,15 @@ class SomaticNormalizer:
         if df.empty:
             return df
         
+        # Use pytz for stability in Docker
+        # Default to Palo Alto (America/Los_Angeles)
         try:
-            local_tz = str(get_localzone()) # e.g., 'America/Los_Angeles'
+            local_tz = 'America/Los_Angeles'
+            tz_obj = pytz.timezone(local_tz)
         except Exception as e:
-            print(f"--- [DEBUG] Timezone detection failed, falling back to UTC: {e} ---")
+            print(f"--- [DEBUG] pytz failure, falling back to UTC: {e} ---")
             local_tz = 'UTC'
+            tz_obj = pytz.UTC
         
         # 1. Convert index to datetime if it isn't
         if not pd.api.types.is_datetime64_any_dtype(df.index):
