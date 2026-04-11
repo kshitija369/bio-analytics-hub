@@ -39,12 +39,13 @@ jobs:
           --description="Somatic Monitoring Apps" || true
 
     - name: Authorize Docker
-      run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
+      run: |-
+        gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
 
     - name: Build and Push Container
       run: |-
         docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/somatic-apps/${{ env.SERVICE_NAME }}:${{ github.sha }} .
-        docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/somatic-apps/${{ env.SERVICE_NAME }}:${{ github.sha }}
+        docker --debug push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/somatic-apps/${{ env.SERVICE_NAME }}:${{ github.sha }}
 
     - name: Deploy to Cloud Run
       run: |-
