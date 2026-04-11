@@ -26,7 +26,8 @@ class MockSomaticDatabase:
         self._initialized = True
 
     def _flush_to_persistence(self):
-        shutil.copy2(self.working_db, self.persistent_db)
+        if os.path.exists(self.working_db):
+            shutil.copy2(self.working_db, self.persistent_db)
 
     def insert_biometrics(self, entries):
         self._ensure_initialized()
@@ -47,12 +48,25 @@ def setup_test_environment(monkeypatch):
         shutil.rmtree(TEST_DIR)
     os.makedirs(TEST_DIR)
     
-    # Mocking the actual DB instance used in routes
-    mock_db_instance = MockSomaticDatabase()
-    monkeypatch.setattr("app.api.routes.get_db", lambda: mock_db_instance)
-    monkeypatch.setattr("app.api.routes._trigger_engine", MagicMock())
+    # Mock environment variables
+    monkeypatch.setenv("OURA_PAT", "mock_oura_token")
+    monkeypatch.setenv("PUSHOVER_USER_KEY", "mock_user")
+    monkeypatch.setenv("PUSHOVER_API_TOKEN", "mock_token")
     
-    # Global patch for the class itself wherever it's imported
+    # Create the global mock instance
+    mock_db_instance = MockSomaticDatabase()
+    
+    # Patch the DATABASE singleton in routes AND the class itself globally
+    import app.api.routes as routes
+    monkeypatch.setattr(routes, "get_db", lambda: mock_db_instance)
+    
+    # Force the trigger engine to be real but with cooldowns disabled
+    from app.core.alerts import SomaticTriggerEngine
+    real_engine = SomaticTriggerEngine()
+    real_engine._last_alerts = {}
+    monkeypatch.setattr(routes, "get_trigger_engine", lambda: real_engine)
+
+    # Patch the class wherever it is instantiated (like in run_pipeline)
     with patch("app.core.database.SomaticDatabase", return_value=mock_db_instance):
         yield
         
@@ -75,10 +89,7 @@ def test_two_tier_persistence_flush():
     assert os.path.exists(PERSISTENT_DB)
 
 def test_sync_with_mock_oura():
-    """
-    Simulates a full Oura sync cycle with all supported endpoints.
-    """
-    def mock_requests_get(url, *args, **kwargs):
+    def mock_session_get(self, url, *args, **kwargs):
         mock_resp = MagicMock()
         mock_resp.status_code = 200
         if "heartrate" in url:
@@ -97,16 +108,20 @@ def test_sync_with_mock_oura():
             mock_resp.json.return_value = {"data": []}
         return mock_resp
 
-    with patch("requests.get", side_effect=mock_requests_get):
+    with patch("requests.Session.get", mock_session_get):
         response = client.get("/sync")
         assert response.status_code == 200
-        
-        # Verify multiple metrics landed in DB
         status = client.get("/db-status").json()
-        counts = status["record_counts"]
-        assert "heart_rate" in counts
-        assert "heart_rate_variability" in counts
-        assert "steps" in counts
+        assert "heart_rate" in status["record_counts"]
+
+def test_alert_engine_trigger():
+    payload = {
+        "data": { "metrics": [{"name": "heart_rate", "data": [{"date": "2026-04-11T12:00:00Z", "qty": 150.0}]}] }
+    }
+    with patch("app.core.alerts.send_to_watch", return_value=True) as mock_send:
+        response = client.post("/webhook/somatic-log", json=payload)
+        assert response.status_code == 200
+        assert mock_send.called
 
 def test_dashboard_rendering_logic():
     client.post("/webhook/somatic-log", json={

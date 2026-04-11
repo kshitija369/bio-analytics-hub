@@ -3,33 +3,42 @@ import requests
 from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Any
 from .base import BiometricProvider
+import pandas as pd
 
 class OuraProvider(BiometricProvider):
     def __init__(self, pat=None):
         self.pat = pat or os.environ.get("OURA_PAT", "YOUR_OURA_TOKEN")
-        self.headers = {'Authorization': f'Bearer {self.pat}'}
         self.base_url = "https://api.ouraring.com/v2/usercollection"
+        # Use a session for persistent headers and better connection pooling
+        self.session = requests.Session()
+        self.session.headers.update({
+            'Authorization': f'Bearer {self.pat}',
+            'User-Agent': 'Witness-State-Monitor/1.0'
+        })
 
     def fetch_data(self, start_time: datetime, end_time: datetime) -> List[Dict[str, Any]]:
-        """Fetches heartrate, sleep sessions, and daily summaries."""
+        """Fetches heartrate, sleep sessions, and daily summaries using a Session."""
         all_raw_data = []
-        local_headers = {'Authorization': f'Bearer {self.pat}'}
         
         # 1. Fetch Heart Rate in 24h chunks
         current_start = start_time
         while current_start < end_time:
             current_end = min(current_start + timedelta(days=1), end_time)
-            # Ensure URL has no trailing slash issues
-            url = "https://api.ouraring.com/v2/usercollection/heartrate"
+            url = f"{self.base_url}/heartrate"
             params = {
                 'start_datetime': current_start.strftime("%Y-%m-%dT%H:%M:%SZ"),
                 'end_datetime': current_end.strftime("%Y-%m-%dT%H:%M:%SZ")
             }
-            resp = requests.get(url, headers=local_headers, params=params)
-            if resp.status_code == 200:
-                data = resp.json().get('data', [])
-                for entry in data: entry['_metric_type'] = 'heartrate'
-                all_raw_data.extend(data)
+            try:
+                resp = self.session.get(url, params=params, timeout=30)
+                if resp.status_code == 200:
+                    data = resp.json().get('data', [])
+                    for entry in data: entry['_metric_type'] = 'heartrate'
+                    all_raw_data.extend(data)
+                else:
+                    print(f"  [Oura Debug] HR Error: {resp.status_code} - {resp.text}")
+            except Exception as e:
+                print(f"  [Oura Debug] HR Request Exception: {e}")
             current_start = current_end
         
         # 2. Daily Summary and Session Endpoints
@@ -38,20 +47,20 @@ class OuraProvider(BiometricProvider):
             'end_date': end_time.date().isoformat()
         }
         
-        # 'sleep' contains the raw HRV time-series!
         endpoints = ['sleep', 'daily_sleep', 'daily_readiness', 'daily_activity', 'daily_stress']
-        
         for ep in endpoints:
-            url = f"https://api.ouraring.com/v2/usercollection/{ep}"
-            resp = requests.get(url, headers=local_headers, params=params_daily)
-            if resp.status_code == 200:
-                data = resp.json().get('data', [])
-                print(f"  [Oura Debug] SUCCESS: Fetched {len(data)} from {ep}")
-                for entry in data:
-                    entry['_metric_type'] = ep
-                all_raw_data.extend(data)
-            else:
-                print(f"  [Oura Debug] FAILED {ep}: {resp.status_code} - {resp.text}")
+            url = f"{self.base_url}/{ep}"
+            try:
+                resp = self.session.get(url, params=params_daily, timeout=30)
+                if resp.status_code == 200:
+                    data = resp.json().get('data', [])
+                    print(f"  [Oura Debug] SUCCESS: Fetched {len(data)} from {ep}")
+                    for entry in data: entry['_metric_type'] = ep
+                    all_raw_data.extend(data)
+                else:
+                    print(f"  [Oura Debug] FAILED {ep}: {resp.status_code} - {resp.text}")
+            except Exception as e:
+                print(f"  [Oura Debug] {ep} Request Exception: {e}")
             
         return all_raw_data
 
@@ -79,7 +88,6 @@ class OuraProvider(BiometricProvider):
                                 "ts": sample_ts, "metric": "heart_rate_variability", "val": float(val),
                                 "unit": "ms", "source": "Oura_v2_sleep", "tag": "baseline"
                             })
-                # Fallback to average_hrv if items missing
                 elif 'average_hrv' in entry and entry['average_hrv']:
                     standardized.append({
                         "ts": f"{day}T00:00:00Z", "metric": "heart_rate_variability", 
@@ -93,10 +101,9 @@ class OuraProvider(BiometricProvider):
                         "ts": base_ts, "metric": "readiness_score", "val": float(entry['score']),
                         "unit": "score", "source": "Oura_v2", "tag": "daily_insight"
                     })
-                # Use hrv_balance as a secondary HRV indicator
                 if 'contributors' in entry and 'hrv_balance' in entry['contributors']:
                     val = entry['contributors']['hrv_balance']
-                    if val:
+                    if val is not None:
                         standardized.append({
                             "ts": base_ts, "metric": "hrv_balance", "val": float(val),
                             "unit": "score", "source": "Oura_v2", "tag": "daily_insight"
@@ -119,6 +126,3 @@ class OuraProvider(BiometricProvider):
                     })
                     
         return standardized
-
-# We need pandas inside the provider for timestamp math
-import pandas as pd

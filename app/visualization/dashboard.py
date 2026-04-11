@@ -50,6 +50,7 @@ class SomaticDashboard:
             'heart_rate': 'mean',
             'heart_rate_variability': 'mean',
             'readiness_score': 'max',
+            'hrv_balance': 'max',
             'sleep_score': 'max',
             'steps': 'max'
         }
@@ -87,13 +88,14 @@ class SomaticDashboard:
             get_col('heart_rate', 1),
             get_col('heart_rate_variability', 1),
             get_col('readiness_score'),
+            get_col('hrv_balance'),
             get_col('sleep_score'),
             get_col('steps')
         ]
 
         fig.add_trace(go.Table(
             header=dict(
-                values=["Date", "Practice (Min)", "Avg HR", "Avg HRV", "Readiness", "Sleep", "Steps"],
+                values=["Date", "Practice (Min)", "Avg HR", "Avg HRV", "Readiness", "HRV Bal", "Sleep", "Steps"],
                 fill_color='#222', align='left', font=dict(color='white', size=12)
             ),
             cells=dict(
