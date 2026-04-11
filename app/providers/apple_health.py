@@ -11,27 +11,39 @@ class AppleHealthProvider(BiometricProvider):
         """
         Transforms Health Auto Export JSON payload to standard format.
         """
-        metrics = payload.get("data", {}).get("metrics", [])
+        # Support both 'data.metrics' and top-level 'metrics' just in case
+        metrics = payload.get("data", {}).get("metrics") or payload.get("metrics", [])
         standardized = []
         
         for m in metrics:
             metric_name = m.get('name')
             data_entries = m.get('data', [])
-            print(f"  [Debug] Processing metric: {metric_name} ({len(data_entries)} points)")
+            units = m.get('units', 'unknown')
+            print(f"  [Apple Debug] Processing metric: {metric_name} ({len(data_entries)} points)")
             
-            # Filter for relevant metrics (sdnn is common in HAE payloads)
-            if metric_name in ['heart_rate', 'heart_rate_variability', 'heart_rate_variability_sdnn', 'mindful_minutes']:
-                # Standardize name for dashboard
-                db_metric_name = 'heart_rate_variability' if 'variability' in metric_name else metric_name
-                
+            # Map metrics to standard names
+            target_metrics = {
+                'heart_rate': 'heart_rate',
+                'heart_rate_variability': 'heart_rate_variability',
+                'heart_rate_variability_sdnn': 'heart_rate_variability',
+                'mindful_minutes': 'mindful_minutes',
+                'sleep_analysis': 'sleep_score' # Proxy mapping for simplicity
+            }
+            
+            if metric_name in target_metrics:
+                db_metric = target_metrics[metric_name]
                 for entry in data_entries:
-                    val = entry.get('qty') or entry.get('avg') or entry.get('value')
+                    # Health Auto Export uses 'qty' or 'value'
+                    val = entry.get('qty')
+                    if val is None: val = entry.get('value')
+                    if val is None: val = entry.get('avg')
+                    
                     if val is not None:
                         standardized.append({
                             "ts": entry.get('date'),
-                            "metric": db_metric_name,
+                            "metric": db_metric,
                             "val": float(val),
-                            "unit": m.get('units'),
+                            "unit": units,
                             "source": "AppleWatch_v9",
                             "tag": "Witnessing" if metric_name == 'mindful_minutes' else "baseline"
                         })
