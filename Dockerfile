@@ -1,13 +1,17 @@
 # Use a slim Python image
 FROM python:3.9-slim
 
-# Install gcsfuse and tini for signal handling and persistence
-RUN apt-get update && apt-get install -y ca-certificates gcsfuse tini && apt-get clean
+# Install dependencies and add Google Cloud repository for gcsfuse
+RUN apt-get update && apt-get install -y ca-certificates curl gnupg lsb-release tini && \
+    echo "deb http://packages.cloud.google.com/apt gcsfuse-$(lsb_release -c -s) main" | tee /etc/apt/sources.list.d/gcsfuse.list && \
+    curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - && \
+    apt-get update && apt-get install -y gcsfuse && \
+    apt-get clean
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 ENV PORT=8080
-ENV APP_HOME /app
+ENV APP_HOME=/app
 
 WORKDIR $APP_HOME
 
