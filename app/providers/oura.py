@@ -22,8 +22,8 @@ class OuraProvider(BiometricProvider):
             
             hr_url = f"{self.base_url}/heartrate"
             params = {
-                'start_datetime': current_start.strftime("%Y-%m-%dT%H:%M:%S"),
-                'end_datetime': current_end.strftime("%Y-%m-%dT%H:%M:%S")
+                'start_datetime': current_start.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                'end_datetime': current_end.strftime("%Y-%m-%dT%H:%M:%SZ")
             }
             hr_resp = requests.get(hr_url, headers=self.headers, params=params)
             if hr_resp.status_code == 200:
