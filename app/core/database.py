@@ -7,17 +7,22 @@ DB_FILE = "Somatic_Log.sqlite" # Renamed to reflect it's actual SQLite
 
 class SomaticDatabase:
     def __init__(self, db_path=None):
-        if db_path:
-            self.db_path = db_path
+        self._db_path_override = db_path
+        self._initialized = False
+        self.db_path = None
+
+    def _ensure_initialized(self):
+        if self._initialized:
+            return
+
+        if self._db_path_override:
+            self.db_path = self._db_path_override
         elif os.path.exists("/app/data"):
             # Path for persistent mount in GCP Cloud Run
             self.db_path = "/app/data/Somatic_Log.sqlite"
         else:
             self.db_path = DB_FILE # Local fallback
             
-        self._init_db()
-
-    def _init_db(self):
         print(f"Initializing database at: {self.db_path}")
         try:
             with sqlite3.connect(self.db_path) as conn:
@@ -40,17 +45,20 @@ class SomaticDatabase:
                 conn.execute("CREATE INDEX IF NOT EXISTS idx_ts ON biometrics(ts)")
                 conn.execute("CREATE INDEX IF NOT EXISTS idx_metric ON biometrics(metric)")
             print("Database initialized successfully.")
+            self._initialized = True
         except Exception as e:
             print(f"CRITICAL ERROR initializing database: {e}")
             # Fallback to local /tmp if the mount is broken
-            if "/app/data" in self.db_path:
+            if "/app/data" in (self.db_path or ""):
                 print("Falling back to ephemeral /tmp storage...")
                 self.db_path = "/tmp/Somatic_Log.sqlite"
-                self._init_db()
+                self._initialized = False # Force retry with new path
+                self._ensure_initialized()
             else:
                 raise e
 
     def insert_biometrics(self, entries: List[Dict[str, Any]]):
+        self._ensure_initialized()
         with sqlite3.connect(self.db_path) as conn:
             conn.executemany("""
                 INSERT INTO biometrics (ts, metric, val, unit, source, tag)
@@ -58,6 +66,7 @@ class SomaticDatabase:
             """, entries)
 
     def get_data(self, start_time: datetime, end_time: datetime, metrics: List[str] = None) -> List[Dict[str, Any]]:
+        self._ensure_initialized()
         query = "SELECT ts, metric, val, unit, source, tag FROM biometrics WHERE ts BETWEEN ? AND ?"
         params = [start_time.isoformat(), end_time.isoformat()]
         
