@@ -13,7 +13,7 @@ class SomaticNormalizer:
             return pd.DataFrame()
 
         df = pd.DataFrame(data)
-        df['ts'] = pd.to_datetime(df['ts'])
+        df['ts'] = pd.to_datetime(df['ts'], format='ISO8601')
         
         # Ensure UTC and localize if missing
         df['ts'] = df.apply(

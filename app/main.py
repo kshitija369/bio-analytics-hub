@@ -11,7 +11,7 @@ import os
 app = FastAPI(title="Witness State Monitoring")
 app.include_router(router)
 
-def run_pipeline(hours_back=24, practice_sessions=None):
+def run_pipeline(hours_back=168, practice_sessions=None):
     """
     Orchestrates the data collection, normalization, and visualization.
     """
@@ -68,10 +68,14 @@ if __name__ == "__main__":
         print("Starting Somatic Log Webhook Server...")
         uvicorn.run(app, host="0.0.0.0", port=8000)
     else:
+        # Default to 168 hours (7 days) if not specified
+        hours = int(sys.argv[2]) if len(sys.argv) > 2 else 168
+        
         # For demonstration/testing: assuming a practice session occurred recently
         now = datetime.now(timezone.utc)
         example_sessions = [
             (now - timedelta(hours=2), now - timedelta(hours=1.5), "Witnessing"),
-            (now - timedelta(hours=10), now - timedelta(hours=9.5), "Anapanasati")
+            (now - timedelta(hours=10), now - timedelta(hours=9.5), "Anapanasati"),
+            # Add more sessions as needed
         ]
-        run_pipeline(hours_back=24, practice_sessions=example_sessions)
+        run_pipeline(hours_back=hours, practice_sessions=example_sessions)
