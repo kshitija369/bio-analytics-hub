@@ -48,11 +48,12 @@ class OuraProvider(BiometricProvider):
             resp = requests.get(f"{self.base_url}/{endpoint}", headers=self.headers, params=params_daily)
             if resp.status_code == 200:
                 data = resp.json().get('data', [])
+                print(f"  [Oura Debug] Fetched {len(data)} records from {endpoint}")
                 for entry in data:
                     entry['_metric_type'] = endpoint
                 all_raw_data.extend(data)
             else:
-                print(f"Error fetching Oura {endpoint}: {resp.status_code}")
+                print(f"  [Oura Debug] ERROR fetching {endpoint}: {resp.status_code} - {resp.text}")
             
         return all_raw_data
 
@@ -94,11 +95,21 @@ class OuraProvider(BiometricProvider):
 
             elif metric_type == 'daily_readiness':
                 base_ts = f"{day}T00:00:00Z"
+                # Debug logging to see available keys
+                print(f"  [Oura Debug] Readiness Keys: {list(entry.keys())}")
+                
                 if 'hrv_iv' in entry:
                     standardized.append({
                         "ts": base_ts, "metric": "heart_rate_variability", "val": float(entry['hrv_iv']),
                         "unit": "ms", "source": "Oura_v2", "tag": "daily_insight"
                     })
+                elif 'contributors' in entry and 'hrv_balance' in entry['contributors']:
+                    # Fallback to balance if raw IV is missing
+                    standardized.append({
+                        "ts": base_ts, "metric": "heart_rate_variability", "val": float(entry['contributors']['hrv_balance']),
+                        "unit": "score", "source": "Oura_v2", "tag": "daily_insight"
+                    })
+                
                 if 'score' in entry:
                     standardized.append({
                         "ts": base_ts, "metric": "readiness_score", "val": float(entry['score']),
