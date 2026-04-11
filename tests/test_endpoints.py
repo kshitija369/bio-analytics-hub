@@ -53,20 +53,16 @@ def setup_test_environment(monkeypatch):
     monkeypatch.setenv("PUSHOVER_USER_KEY", "mock_user")
     monkeypatch.setenv("PUSHOVER_API_TOKEN", "mock_token")
     
-    # Create the global mock instance
-    mock_db_instance = MockSomaticDatabase()
-    
-    # Patch the DATABASE singleton in routes AND the class itself globally
+    # Patch the DATABASE singleton
     import app.api.routes as routes
+    mock_db_instance = MockSomaticDatabase()
     monkeypatch.setattr(routes, "get_db", lambda: mock_db_instance)
     
-    # Force the trigger engine to be real but with cooldowns disabled
     from app.core.alerts import SomaticTriggerEngine
     real_engine = SomaticTriggerEngine()
     real_engine._last_alerts = {}
     monkeypatch.setattr(routes, "get_trigger_engine", lambda: real_engine)
 
-    # Patch the class wherever it is instantiated (like in run_pipeline)
     with patch("app.core.database.SomaticDatabase", return_value=mock_db_instance):
         yield
         
@@ -89,7 +85,10 @@ def test_two_tier_persistence_flush():
     assert os.path.exists(PERSISTENT_DB)
 
 def test_sync_with_mock_oura():
-    def mock_session_get(self, url, *args, **kwargs):
+    """
+    Simulates a full Oura sync cycle. Patches both requests.get and Session.get.
+    """
+    def mock_get(url, *args, **kwargs):
         mock_resp = MagicMock()
         mock_resp.status_code = 200
         if "heartrate" in url:
@@ -108,7 +107,8 @@ def test_sync_with_mock_oura():
             mock_resp.json.return_value = {"data": []}
         return mock_resp
 
-    with patch("requests.Session.get", mock_session_get):
+    with patch("requests.get", side_effect=mock_get), \
+         patch("requests.Session.get", side_effect=mock_get):
         response = client.get("/sync")
         assert response.status_code == 200
         status = client.get("/db-status").json()
