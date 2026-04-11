@@ -35,6 +35,10 @@ async def receive_apple_health_data(request: Request):
     
     try:
         payload = await request.json()
+        print(f"--- [WEBHOOK DEBUG] Raw Payload Received ---")
+        import json
+        print(json.dumps(payload)[:1000]) # Log first 1000 chars
+        
         standardized_data = provider.transform_to_standard(payload)
         
         if standardized_data:

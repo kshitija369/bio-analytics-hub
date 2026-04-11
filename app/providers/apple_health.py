@@ -19,14 +19,17 @@ class AppleHealthProvider(BiometricProvider):
             data_entries = m.get('data', [])
             print(f"  [Debug] Processing metric: {metric_name} ({len(data_entries)} points)")
             
-            # Filter for relevant metrics
-            if metric_name in ['heart_rate', 'heart_rate_variability', 'mindful_minutes']:
+            # Filter for relevant metrics (sdnn is common in HAE payloads)
+            if metric_name in ['heart_rate', 'heart_rate_variability', 'heart_rate_variability_sdnn', 'mindful_minutes']:
+                # Standardize name for dashboard
+                db_metric_name = 'heart_rate_variability' if 'variability' in metric_name else metric_name
+                
                 for entry in data_entries:
                     val = entry.get('qty') or entry.get('avg') or entry.get('value')
                     if val is not None:
                         standardized.append({
                             "ts": entry.get('date'),
-                            "metric": metric_name,
+                            "metric": db_metric_name,
                             "val": float(val),
                             "unit": m.get('units'),
                             "source": "AppleWatch_v9",
