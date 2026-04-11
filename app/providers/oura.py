@@ -37,13 +37,22 @@ class OuraProvider(BiometricProvider):
             'end_date': end_time.date().isoformat()
         }
         
-        for endpoint in ['daily_sleep', 'daily_stress', 'daily_readiness']:
+        endpoints = [
+            'daily_sleep', 
+            'daily_stress', 
+            'daily_readiness', 
+            'daily_activity'
+        ]
+        
+        for endpoint in endpoints:
             resp = requests.get(f"{self.base_url}/{endpoint}", headers=self.headers, params=params_daily)
             if resp.status_code == 200:
                 data = resp.json().get('data', [])
                 for entry in data:
                     entry['_metric_type'] = endpoint
                 all_raw_data.extend(data)
+            else:
+                print(f"Error fetching Oura {endpoint}: {resp.status_code}")
             
         return all_raw_data
 
@@ -85,14 +94,42 @@ class OuraProvider(BiometricProvider):
 
             elif metric_type == 'daily_readiness':
                 base_ts = f"{day}T00:00:00Z"
-                if 'hrv_iv' in entry: # This is Oura's primary HRV metric
+                if 'hrv_iv' in entry:
                     standardized.append({
-                        "ts": base_ts,
-                        "metric": "heart_rate_variability",
-                        "val": float(entry['hrv_iv']),
-                        "unit": "ms",
-                        "source": "Oura_v2",
-                        "tag": "daily_insight"
+                        "ts": base_ts, "metric": "heart_rate_variability", "val": float(entry['hrv_iv']),
+                        "unit": "ms", "source": "Oura_v2", "tag": "daily_insight"
+                    })
+                if 'score' in entry:
+                    standardized.append({
+                        "ts": base_ts, "metric": "readiness_score", "val": float(entry['score']),
+                        "unit": "score", "source": "Oura_v2", "tag": "daily_insight"
+                    })
+
+            elif metric_type == 'daily_activity':
+                base_ts = f"{day}T12:00:00Z" # Midday for activity summaries
+                mapping = {
+                    'active_calories': 'calories',
+                    'steps': 'steps',
+                    'equivalent_walking_distance': 'walking_m'
+                }
+                for key, metric in mapping.items():
+                    if key in entry:
+                        standardized.append({
+                            "ts": base_ts, "metric": metric, "val": float(entry[key]),
+                            "unit": "val", "source": "Oura_v2", "tag": "daily_insight"
+                        })
+
+            elif metric_type == 'daily_stress':
+                base_ts = f"{day}T12:00:00Z"
+                if 'stress_high' in entry:
+                    standardized.append({
+                        "ts": base_ts, "metric": "stress_high_min", "val": float(entry['stress_high']),
+                        "unit": "min", "source": "Oura_v2", "tag": "daily_insight"
+                    })
+                if 'recovery_high' in entry:
+                    standardized.append({
+                        "ts": base_ts, "metric": "recovery_high_min", "val": float(entry['recovery_high']),
+                        "unit": "min", "source": "Oura_v2", "tag": "daily_insight"
                     })
                     
         return standardized
