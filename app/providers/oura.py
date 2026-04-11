@@ -1,6 +1,6 @@
 import os
 import requests
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Any
 from .base import BiometricProvider
 
@@ -11,15 +11,13 @@ class OuraProvider(BiometricProvider):
         self.base_url = "https://api.ouraring.com/v2/usercollection"
 
     def fetch_data(self, start_time: datetime, end_time: datetime) -> List[Dict[str, Any]]:
-        """Fetches heartrate and daily_sleep data with chunked heartrate fetching."""
+        """Fetches heartrate, sleep, stress, and readiness data."""
         all_raw_data = []
         
-        # 1. Fetch Heart Rate in 24h chunks to avoid payload limits
-        from datetime import timedelta
+        # 1. Fetch Heart Rate in 24h chunks
         current_start = start_time
         while current_start < end_time:
             current_end = min(current_start + timedelta(days=1), end_time)
-            
             hr_url = f"{self.base_url}/heartrate"
             params = {
                 'start_datetime': current_start.strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -31,25 +29,21 @@ class OuraProvider(BiometricProvider):
                 for entry in hr_data:
                     entry['_metric_type'] = 'heartrate'
                 all_raw_data.extend(hr_data)
-                print(f"Fetched {len(hr_data)} heartrate points for {current_start.date()}")
-            else:
-                print(f"Error fetching Oura HR for {current_start.date()}: {hr_resp.status_code}")
-            
             current_start = current_end
         
-        # 2. Fetch Daily Sleep (for contributors like recovery_index)
-        sleep_url = f"{self.base_url}/daily_sleep"
-        # Sleep API uses start_date (YYYY-MM-DD)
-        params_sleep = {
+        # 2. Daily Summary Endpoints
+        params_daily = {
             'start_date': start_time.date().isoformat(),
             'end_date': end_time.date().isoformat()
         }
-        sleep_resp = requests.get(sleep_url, headers=self.headers, params=params_sleep)
-        if sleep_resp.status_code == 200:
-            sleep_data = sleep_resp.json().get('data', [])
-            for entry in sleep_data:
-                entry['_metric_type'] = 'daily_sleep'
-            all_raw_data.extend(sleep_data)
+        
+        for endpoint in ['daily_sleep', 'daily_stress', 'daily_readiness']:
+            resp = requests.get(f"{self.base_url}/{endpoint}", headers=self.headers, params=params_daily)
+            if resp.status_code == 200:
+                data = resp.json().get('data', [])
+                for entry in data:
+                    entry['_metric_type'] = endpoint
+                all_raw_data.extend(data)
             
         return all_raw_data
 
@@ -57,6 +51,7 @@ class OuraProvider(BiometricProvider):
         standardized = []
         for entry in raw_data:
             metric_type = entry.get('_metric_type')
+            day = entry.get('day')
             
             if metric_type == 'heartrate':
                 standardized.append({
@@ -69,36 +64,33 @@ class OuraProvider(BiometricProvider):
                 })
             
             elif metric_type == 'daily_sleep':
-                # Map sleep contributors
-                contribs = entry.get('contributors', {})
-                day = entry['day']
-                # Using 00:00:00 for daily metrics
                 base_ts = f"{day}T00:00:00Z"
-                
+                contribs = entry.get('contributors', {})
                 metrics_to_map = {
                     'recovery_index': 'sleep_recovery_index',
                     'rem_sleep': 'sleep_rem_score',
-                    'deep_sleep': 'sleep_deep_score',
-                    'efficiency': 'sleep_efficiency'
+                    'deep_sleep': 'sleep_deep_score'
                 }
-                
                 for key, metric_name in metrics_to_map.items():
                     if key in contribs:
                         standardized.append({
-                            "ts": base_ts,
-                            "metric": metric_name,
-                            "val": float(contribs[key]),
-                            "unit": "score",
-                            "source": "Oura_v2",
-                            "tag": "daily_insight"
+                            "ts": base_ts, "metric": metric_name, "val": float(contribs[key]),
+                            "unit": "score", "source": "Oura_v2", "tag": "daily_insight"
                         })
-                
                 if 'score' in entry:
                     standardized.append({
+                        "ts": base_ts, "metric": "sleep_score", "val": float(entry['score']),
+                        "unit": "score", "source": "Oura_v2", "tag": "daily_insight"
+                    })
+
+            elif metric_type == 'daily_readiness':
+                base_ts = f"{day}T00:00:00Z"
+                if 'hrv_iv' in entry: # This is Oura's primary HRV metric
+                    standardized.append({
                         "ts": base_ts,
-                        "metric": "sleep_score",
-                        "val": float(entry['score']),
-                        "unit": "score",
+                        "metric": "heart_rate_variability",
+                        "val": float(entry['hrv_iv']),
+                        "unit": "ms",
                         "source": "Oura_v2",
                         "tag": "daily_insight"
                     })
