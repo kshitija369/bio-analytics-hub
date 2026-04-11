@@ -21,20 +21,25 @@ def test_oura_heartrate_transformation():
     assert standardized[0]["val"] == 75.0
     assert standardized[0]["source"] == "Oura_v2"
 
-def test_oura_readiness_hrv_transformation():
+def test_oura_sleep_hrv_transformation():
     provider = OuraProvider(pat="test")
     raw_data = [
         {
-            "_metric_type": "daily_readiness",
+            "_metric_type": "sleep",
             "day": "2026-04-11",
-            "hrv_iv": 62.5
+            "hrv": {
+                "timestamp": "2026-04-11T02:00:00Z",
+                "interval": 300,
+                "items": [60.0, 65.0, None, 70.0]
+            }
         }
     ]
     standardized = provider.transform_to_standard(raw_data)
-    assert len(standardized) == 1
+    # 3 non-null items
+    assert len(standardized) == 3
     assert standardized[0]["metric"] == "heart_rate_variability"
-    assert standardized[0]["val"] == 62.5
-    assert "2026-04-11" in standardized[0]["ts"]
+    assert standardized[0]["val"] == 60.0
+    assert standardized[0]["source"] == "Oura_v2_sleep"
 
 # --- [APPLE HEALTH PARSING TESTS] ---
 
