@@ -44,17 +44,23 @@ class SomaticDashboard:
         }
 
         # 3. Process Daily Summary Data
-        # Group by date to get daily metrics for the table
-        daily_df = df.resample('D').agg({
+        # Group by date to get daily metrics for the table, handling missing columns gracefully
+        agg_map = {
             'is_practice': 'sum',
             'heart_rate': 'mean',
             'heart_rate_variability': 'mean',
             'readiness_score': 'max',
             'sleep_score': 'max',
             'steps': 'max'
-        }).dropna(how='all')
+        }
+        # Filter agg_map to only include columns that actually exist in df
+        existing_agg = {k: v for k, v in agg_map.items() if k in df.columns}
         
-        daily_df.index = daily_df.index.strftime('%Y-%m-%d')
+        if existing_agg:
+            daily_df = df.resample('D').agg(existing_agg).dropna(how='all')
+            daily_df.index = daily_df.index.strftime('%Y-%m-%d')
+        else:
+            daily_df = pd.DataFrame()
 
         # 4. Initialize Subplots (5 Rows: Table + 4 Charts)
         fig = make_subplots(
@@ -69,21 +75,29 @@ class SomaticDashboard:
         # ----------------------------------------------------------------------
         # ROW 1: DAILY SUMMARY TABLE
         # ----------------------------------------------------------------------
+        # Prepare table values with defaults for missing columns
+        def get_col(name, round_ndigits=None):
+            if name in daily_df.columns:
+                return daily_df[name].round(round_ndigits) if round_ndigits is not None else daily_df[name]
+            return ["-"] * len(daily_df) if not daily_df.empty else []
+
+        table_vals = [
+            daily_df.index if not daily_df.empty else [],
+            get_col('is_practice', 0),
+            get_col('heart_rate', 1),
+            get_col('heart_rate_variability', 1),
+            get_col('readiness_score'),
+            get_col('sleep_score'),
+            get_col('steps')
+        ]
+
         fig.add_trace(go.Table(
             header=dict(
                 values=["Date", "Practice (Min)", "Avg HR", "Avg HRV", "Readiness", "Sleep", "Steps"],
                 fill_color='#222', align='left', font=dict(color='white', size=12)
             ),
             cells=dict(
-                values=[
-                    daily_df.index,
-                    daily_df['is_practice'].round(0),
-                    daily_df['heart_rate'].round(1),
-                    daily_df['heart_rate_variability'].round(1),
-                    daily_df['readiness_score'],
-                    daily_df['sleep_score'],
-                    daily_df['steps']
-                ],
+                values=table_vals,
                 fill_color='#111', align='left', font=dict(color='white', size=11)
             )
         ), row=1, col=1)
@@ -117,13 +131,17 @@ class SomaticDashboard:
                     marker=dict(size=6, color='#2ECC71', symbol='diamond', line=dict(width=1, color='white'))
                 ), row=3, col=1)
 
-            practice_data = df[df.get('is_practice', 0) == 1]
-            if not practice_data.empty:
-                fig.add_trace(go.Scatter(
-                    x=practice_data.index, y=practice_data['heart_rate'],
-                    name='Witness HR', line=dict(color=COLORS['practice_hr'], width=4),
-                    mode='lines+markers', marker=dict(size=4, color=COLORS['practice_hr'])
-                ), row=3, col=1)
+            # Vibrant Practice HR
+            if 'is_practice' in df.columns:
+                practice_data = df[df['is_practice'] == 1]
+                if not practice_data.empty:
+                    fig.add_trace(go.Scatter(
+                        x=practice_data.index, y=practice_data['heart_rate'],
+                        name='Witness HR', line=dict(color=COLORS['practice_hr'], width=4),
+                        mode='lines+markers', marker=dict(size=4, color=COLORS['practice_hr'])
+                    ), row=3, col=1)
+            else:
+                practice_data = pd.DataFrame()
 
         # ----------------------------------------------------------------------
         # ROW 4: HRV
@@ -143,7 +161,7 @@ class SomaticDashboard:
                     marker=dict(size=6, color='#2ECC71', symbol='diamond', line=dict(width=1, color='white'))
                 ), row=4, col=1)
 
-            if not practice_data.empty:
+            if not practice_data.empty and 'heart_rate_variability' in practice_data.columns:
                 fig.add_trace(go.Scatter(
                     x=practice_data.index, y=practice_data['heart_rate_variability'],
                     name='Witness HRV', line=dict(color=COLORS['practice_hrv'], width=4),
