@@ -1,3 +1,4 @@
+from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 import pandas as pd
 from datetime import timedelta
@@ -9,67 +10,61 @@ class SomaticDashboard:
             print("No data for dashboard.")
             return
 
-        fig = go.Figure()
+        # 1. Initialize Subplots
+        fig = make_subplots(
+            rows=2, cols=1, 
+            shared_xaxes=True, 
+            vertical_spacing=0.05,
+            subplot_titles=("Somatic Flow (Heart Rate)", "Recovery Density (HRV)"),
+            row_heights=[0.6, 0.4]
+        )
 
-        # 1. Plot Heart Rate
+        # 2. Add Heart Rate (Somatic Flow)
         if 'heart_rate' in df.columns:
             fig.add_trace(go.Scatter(
                 x=df.index, y=df['heart_rate'],
                 mode='lines', name='Heart Rate (BPM)',
-                line=dict(color='black', width=1.5),
-                opacity=0.8
-            ))
+                line=dict(color='black', width=1),
+                opacity=0.7
+            ), row=1, col=1)
 
-        # 2. Plot HRV on Secondary Y-axis
-        if 'heart_rate_variability' in df.columns:
-            fig.add_trace(go.Scatter(
-                x=df.index, y=df['heart_rate_variability'],
-                mode='markers', name='HRV (SDNN)',
-                marker=dict(color='green', size=5, symbol='diamond'),
-                yaxis="y2",
-                opacity=0.6
-            ))
-
-        # 3. State/Practice Overlays
-        if 'state_label' in df.columns:
-            # Find practice sessions (where label is not Baseline)
-            # This is a simplified way to highlight practice blocks
-            sessions = df[df['state_label'] != 'Baseline']
-            if not sessions.empty:
-                # We can group by contiguous labels or just use the raw data points
-                # For MVP, we'll highlight the regions
-                unique_labels = sessions['state_label'].unique()
-                for label in unique_labels:
-                    label_data = sessions[sessions['state_label'] == label]
-                    # To avoid too many vrects, we find start/end of blocks
-                    # (Simplified for now)
+            # Highlight Witness Sessions on HR plot
+            if 'state_label' in df.columns:
+                witness_df = df[df['state_label'] == 'Witnessing']
+                if not witness_df.empty:
                     fig.add_trace(go.Scatter(
-                        x=label_data.index, y=[df['heart_rate'].max()] * len(label_data),
-                        mode='markers', name=f"Practice: {label}",
-                        marker=dict(color='indigo', size=8, symbol='line-ns-open'),
+                        x=witness_df.index, y=witness_df['heart_rate'],
+                        mode='markers', name='Witness State',
+                        marker=dict(color='indigo', size=6, symbol='diamond'),
                         hoverinfo='text',
-                        text=f"Practice: {label}"
-                    ))
+                        text='In Practice: Witnessing'
+                    ), row=1, col=1)
 
-        # 4. Layout Configuration
+        # 3. Add HRV (Recovery Density)
+        if 'heart_rate_variability' in df.columns:
+            fig.add_trace(go.Bar(
+                x=df.index, y=df['heart_rate_variability'],
+                name='HRV (SDNN ms)',
+                marker_color='teal',
+                opacity=0.8
+            ), row=2, col=1)
+
+        # 4. Global Layout Configuration
         fig.update_layout(
-            title="Somatic_Log: Unified 'Witness State' Dashboard",
-            xaxis_title="Time (UTC)",
-            yaxis_title="Heart Rate (BPM)",
-            yaxis2=dict(
-                title="HRV (SDNN ms)",
-                overlaying="y",
-                side="right",
-                showgrid=False
-            ),
+            title="7-Day Somatic Witness Map: Physiological Realities of Practice",
             template="plotly_white",
             hovermode="x unified",
-            height=800,
+            height=900,
+            showlegend=True,
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
         )
 
+        fig.update_yaxes(title_text="BPM", row=1, col=1)
+        fig.update_yaxes(title_text="SDNN (ms)", row=2, col=1)
+        fig.update_xaxes(title_text="Time (UTC)", row=2, col=1)
+
         fig.write_html(output_path)
-        print(f"Unified dashboard saved to {output_path}")
+        print(f"Intuitive unified dashboard saved to {output_path}")
 
     @staticmethod
     def perform_witness_zoom(df: pd.DataFrame, practice_label="Witnessing"):

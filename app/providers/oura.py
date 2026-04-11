@@ -11,21 +11,31 @@ class OuraProvider(BiometricProvider):
         self.base_url = "https://api.ouraring.com/v2/usercollection"
 
     def fetch_data(self, start_time: datetime, end_time: datetime) -> List[Dict[str, Any]]:
-        """Fetches heartrate and daily_sleep data."""
+        """Fetches heartrate and daily_sleep data with chunked heartrate fetching."""
         all_raw_data = []
         
-        # 1. Fetch Heart Rate
-        hr_url = f"{self.base_url}/heartrate"
-        params = {
-            'start_datetime': start_time.strftime("%Y-%m-%dT%H:%M:%S"),
-            'end_datetime': end_time.strftime("%Y-%m-%dT%H:%M:%S")
-        }
-        hr_resp = requests.get(hr_url, headers=self.headers, params=params)
-        if hr_resp.status_code == 200:
-            hr_data = hr_resp.json().get('data', [])
-            for entry in hr_data:
-                entry['_metric_type'] = 'heartrate'
-            all_raw_data.extend(hr_data)
+        # 1. Fetch Heart Rate in 24h chunks to avoid payload limits
+        from datetime import timedelta
+        current_start = start_time
+        while current_start < end_time:
+            current_end = min(current_start + timedelta(days=1), end_time)
+            
+            hr_url = f"{self.base_url}/heartrate"
+            params = {
+                'start_datetime': current_start.strftime("%Y-%m-%dT%H:%M:%S"),
+                'end_datetime': current_end.strftime("%Y-%m-%dT%H:%M:%S")
+            }
+            hr_resp = requests.get(hr_url, headers=self.headers, params=params)
+            if hr_resp.status_code == 200:
+                hr_data = hr_resp.json().get('data', [])
+                for entry in hr_data:
+                    entry['_metric_type'] = 'heartrate'
+                all_raw_data.extend(hr_data)
+                print(f"Fetched {len(hr_data)} heartrate points for {current_start.date()}")
+            else:
+                print(f"Error fetching Oura HR for {current_start.date()}: {hr_resp.status_code}")
+            
+            current_start = current_end
         
         # 2. Fetch Daily Sleep (for contributors like recovery_index)
         sleep_url = f"{self.base_url}/daily_sleep"
