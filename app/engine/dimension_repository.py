@@ -38,7 +38,7 @@ class DimensionRepository:
             
         df = pd.DataFrame(data)
         # Ensure ts is datetime and set as index
-        df['ts'] = pd.to_datetime(df['ts'])
+        df['ts'] = pd.to_datetime(df['ts'], format='ISO8601')
         df = df.set_index('ts').sort_index()
         
         return df
