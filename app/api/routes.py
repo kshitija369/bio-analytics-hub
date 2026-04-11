@@ -4,7 +4,11 @@ from ..providers.apple_health import AppleHealthProvider
 from ..core.alerts import SomaticTriggerEngine
 from datetime import datetime
 
+print("--- [STARTUP DEBUG] Entering app/api/routes.py ---")
+
 router = APIRouter()
+
+print("--- [STARTUP DEBUG] router initialized ---")
 
 # Lazy initializers to prevent startup crashes
 _db = None

@@ -1,19 +1,37 @@
 import uvicorn
 from fastapi import FastAPI
-from app.api.routes import router
-from app.providers.oura import OuraProvider
-from app.core.database import SomaticDatabase
-from app.core.normalization import SomaticNormalizer
-from app.visualization.dashboard import SomaticDashboard
-from app.core.alerts import SomaticTriggerEngine
-from datetime import datetime, timedelta, timezone
-import os
+import sys
+import traceback
+
+print("--- [STARTUP DEBUG] Entering app/main.py ---")
+
+try:
+    from app.api.routes import router
+    from app.providers.oura import OuraProvider
+    from app.core.database import SomaticDatabase
+    from app.core.normalization import SomaticNormalizer
+    from app.visualization.dashboard import SomaticDashboard
+    from app.core.alerts import SomaticTriggerEngine
+    from datetime import datetime, timedelta, timezone
+    import os
+    print("--- [STARTUP DEBUG] All imports successful ---")
+except Exception as e:
+    print("--- [STARTUP DEBUG] CRITICAL IMPORT ERROR ---")
+    print(traceback.format_exc())
+    sys.exit(1)
 
 app = FastAPI(title="Witness State Monitoring")
-app.include_router(router)
+
+try:
+    app.include_router(router)
+    print("--- [STARTUP DEBUG] Router included successfully ---")
+except Exception as e:
+    print("--- [STARTUP DEBUG] ERROR INCLUDING ROUTER ---")
+    print(traceback.format_exc())
 
 @app.get("/")
 async def root():
+    print("--- [DEBUG] Root endpoint called ---")
     return {"message": "Witness State Monitoring API is live"}
 
 def run_pipeline(hours_back=168, practice_sessions=None):
