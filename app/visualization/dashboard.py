@@ -133,8 +133,13 @@ class SomaticDashboard:
 
             # Witness HRV (Thick/Radiant)
             if not practice_data.empty:
-
-        # 5. Smart Zoom & Dark Mode Layout
+                fig.add_trace(go.Scatter(
+                    x=practice_data.index, y=practice_data['heart_rate_variability'],
+                    name='Witness HRV',
+                    line=dict(color=COLORS['practice_hrv'], width=4),
+                    mode='lines+markers',
+                    marker=dict(size=4, color=COLORS['practice_hrv'])
+                ), row=3, col=1)
         fig.update_layout(
             template="plotly_dark",
             paper_bgcolor=COLORS['bg'],
