@@ -40,7 +40,8 @@ Always refer to this file before writing code. It contains the project's foundat
 ---
 
 ## 🧪 Testing & Validation Mandates
-- **Pre-Push Requirement:** All 3 test suites MUST pass locally before any commit:
+- **MANDATORY:** Integration tests MUST be updated to cover any new logic or endpoints before code is committed.
+- **Pre-Push Requirement:** All test suites MUST pass locally before any commit:
     1. `tests/test_endpoints.py` (API & Logic Flow)
     2. `tests/test_parsing.py` (JSON Schema Integrity)
     3. `tests/test_auth.py` (Header & Token Integrity)
