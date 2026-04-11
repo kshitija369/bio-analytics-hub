@@ -6,8 +6,15 @@ from typing import List, Dict, Any
 DB_FILE = "Somatic_Log.sqlite" # Renamed to reflect it's actual SQLite
 
 class SomaticDatabase:
-    def __init__(self, db_path=DB_FILE):
-        self.db_path = db_path
+    def __init__(self, db_path=None):
+        if db_path:
+            self.db_path = db_path
+        elif os.path.exists("/app/data"):
+            # Path for persistent mount in GCP Cloud Run
+            self.db_path = "/app/data/Somatic_Log.sqlite"
+        else:
+            self.db_path = DB_FILE # Local fallback
+            
         self._init_db()
 
     def _init_db(self):
