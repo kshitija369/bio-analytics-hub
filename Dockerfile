@@ -1,8 +1,8 @@
-# Use a slim Python image
-FROM python:3.9-slim
+# Use a modern Python image
+FROM python:3.11-slim
 
-# Install tini for signal handling
-RUN apt-get update && apt-get install -y tini && apt-get clean
+# Install tini and basic system libraries for pandas/numpy
+RUN apt-get update && apt-get install -y tini libstdc++6 && apt-get clean
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
@@ -13,12 +13,13 @@ WORKDIR $APP_HOME
 
 # Install dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the code
 COPY . .
 
-# Create a mount point for the persistent DB (used by native mount)
+# Create a mount point for the persistent DB
 RUN mkdir -p /app/data
 
 # Ensure the script is executable

@@ -12,6 +12,10 @@ import os
 app = FastAPI(title="Witness State Monitoring")
 app.include_router(router)
 
+@app.get("/")
+async def root():
+    return {"message": "Witness State Monitoring API is live"}
+
 def run_pipeline(hours_back=168, practice_sessions=None):
     """
     Orchestrates the data collection, normalization, and visualization.
