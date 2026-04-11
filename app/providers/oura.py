@@ -7,20 +7,28 @@ import pandas as pd
 
 class OuraProvider(BiometricProvider):
     def __init__(self, pat=None):
-        self.pat = pat or os.environ.get("OURA_PAT", "YOUR_OURA_TOKEN")
+        raw_pat = pat or os.environ.get("OURA_PAT", "YOUR_OURA_TOKEN")
+        # CRITICAL: Clean PAT of any whitespace/newlines that strip headers
+        self.pat = str(raw_pat).strip()
         self.base_url = "https://api.ouraring.com/v2/usercollection"
-        # Use a session for persistent headers and better connection pooling
         self.session = requests.Session()
-        self.session.headers.update({
+
+    def _get_headers(self):
+        """Generates fresh headers for each request to prevent stripping."""
+        return {
             'Authorization': f'Bearer {self.pat}',
-            'User-Agent': 'Witness-State-Monitor/1.0'
-        })
+            'User-Agent': 'Witness-State-Monitor/1.0',
+            'Accept': 'application/json'
+        }
 
     def fetch_data(self, start_time: datetime, end_time: datetime) -> List[Dict[str, Any]]:
-        """Fetches heartrate, sleep sessions, and daily summaries using a Session."""
+        """Fetches heartrate, sleep sessions, and daily summaries."""
         all_raw_data = []
+        headers = self._get_headers()
         
-        # 1. Fetch Heart Rate in 24h chunks
+        print(f"  [Oura Debug] Auth Header Present: {'Authorization' in headers}")
+        
+        # 1. Fetch Heart Rate
         current_start = start_time
         while current_start < end_time:
             current_end = min(current_start + timedelta(days=1), end_time)
@@ -30,15 +38,15 @@ class OuraProvider(BiometricProvider):
                 'end_datetime': current_end.strftime("%Y-%m-%dT%H:%M:%SZ")
             }
             try:
-                resp = self.session.get(url, params=params, timeout=30)
+                resp = self.session.get(url, headers=headers, params=params, timeout=30)
                 if resp.status_code == 200:
                     data = resp.json().get('data', [])
                     for entry in data: entry['_metric_type'] = 'heartrate'
                     all_raw_data.extend(data)
                 else:
-                    print(f"  [Oura Debug] HR Error: {resp.status_code} - {resp.text}")
+                    print(f"  [Oura Debug] FAILED HR ({resp.status_code}): {resp.text}")
             except Exception as e:
-                print(f"  [Oura Debug] HR Request Exception: {e}")
+                print(f"  [Oura Debug] HR EXCEPTION: {e}")
             current_start = current_end
         
         # 2. Daily Summary and Session Endpoints
@@ -51,16 +59,19 @@ class OuraProvider(BiometricProvider):
         for ep in endpoints:
             url = f"{self.base_url}/{ep}"
             try:
-                resp = self.session.get(url, params=params_daily, timeout=30)
+                # Explicitly passing headers here to be 100% sure
+                resp = self.session.get(url, headers=headers, params=params_daily, timeout=30)
                 if resp.status_code == 200:
                     data = resp.json().get('data', [])
-                    print(f"  [Oura Debug] SUCCESS: Fetched {len(data)} from {ep}")
+                    print(f"  [Oura Debug] SUCCESS: {ep} ({len(data)} records)")
                     for entry in data: entry['_metric_type'] = ep
                     all_raw_data.extend(data)
                 else:
-                    print(f"  [Oura Debug] FAILED {ep}: {resp.status_code} - {resp.text}")
+                    print(f"  [Oura Debug] FAILED {ep} ({resp.status_code}): {resp.text}")
             except Exception as e:
-                print(f"  [Oura Debug] {ep} Request Exception: {e}")
+                print(f"  [Oura Debug] {ep} EXCEPTION: {e}")
+            
+        return all_raw_data
             
         return all_raw_data
 
