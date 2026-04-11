@@ -18,19 +18,37 @@ class SomaticDatabase:
         self._init_db()
 
     def _init_db(self):
-        with sqlite3.connect(self.db_path) as conn:
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS biometrics (
-                    ts TEXT NOT NULL,
-                    metric TEXT NOT NULL,
-                    val REAL NOT NULL,
-                    unit TEXT,
-                    source TEXT,
-                    tag TEXT
-                )
-            """)
-            conn.execute("CREATE INDEX IF NOT EXISTS idx_ts ON biometrics(ts)")
-            conn.execute("CREATE INDEX IF NOT EXISTS idx_metric ON biometrics(metric)")
+        print(f"Initializing database at: {self.db_path}")
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                # Optimized for FUSE (No locking, no journal)
+                if "/app/data" in self.db_path:
+                    print("Applying FUSE-compatible SQLite pragmas...")
+                    conn.execute("PRAGMA locking_mode = EXCLUSIVE")
+                    conn.execute("PRAGMA journal_mode = OFF")
+                
+                conn.execute("""
+                    CREATE TABLE IF NOT EXISTS biometrics (
+                        ts TEXT NOT NULL,
+                        metric TEXT NOT NULL,
+                        val REAL NOT NULL,
+                        unit TEXT,
+                        source TEXT,
+                        tag TEXT
+                    )
+                """)
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_ts ON biometrics(ts)")
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_metric ON biometrics(metric)")
+            print("Database initialized successfully.")
+        except Exception as e:
+            print(f"CRITICAL ERROR initializing database: {e}")
+            # Fallback to local /tmp if the mount is broken
+            if "/app/data" in self.db_path:
+                print("Falling back to ephemeral /tmp storage...")
+                self.db_path = "/tmp/Somatic_Log.sqlite"
+                self._init_db()
+            else:
+                raise e
 
     def insert_biometrics(self, entries: List[Dict[str, Any]]):
         with sqlite3.connect(self.db_path) as conn:

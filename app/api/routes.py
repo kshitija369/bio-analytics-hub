@@ -5,15 +5,32 @@ from ..core.alerts import SomaticTriggerEngine
 from datetime import datetime
 
 router = APIRouter()
-db = SomaticDatabase()
-provider = AppleHealthProvider()
-trigger_engine = SomaticTriggerEngine()
+
+# Lazy initializers to prevent startup crashes
+_db = None
+_trigger_engine = None
+
+def get_db():
+    global _db
+    if _db is None:
+        _db = SomaticDatabase()
+    return _db
+
+def get_trigger_engine():
+    global _trigger_engine
+    if _trigger_engine is None:
+        _trigger_engine = SomaticTriggerEngine()
+    return _trigger_engine
 
 @router.post("/webhook/somatic-log")
 async def receive_apple_health_data(request: Request):
     """
     Endpoint for receiving health data from Health Auto Export.
     """
+    db = get_db()
+    trigger_engine = get_trigger_engine()
+    provider = AppleHealthProvider()
+    
     try:
         payload = await request.json()
         standardized_data = provider.transform_to_standard(payload)
