@@ -33,7 +33,7 @@ jobs:
     - name: Run Integration Tests
       run: |
         export PYTHONPATH=$PYTHONPATH:.
-        python -m pytest tests/test_endpoints.py
+        python -m pytest tests/test_endpoints.py tests/test_parsing.py
 
     - name: Google Auth
       id: auth
