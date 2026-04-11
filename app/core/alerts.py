@@ -8,14 +8,21 @@ class SomaticTriggerEngine:
     _last_alerts = {}
 
     def __init__(self, config_path="config/triggers.yaml"):
+        print(f"--- [DEBUG] Initializing TriggerEngine with config: {config_path} ---")
         # Allow specifying config_path for testing or flexibility
         if not os.path.exists(config_path):
-            print(f"Warning: {config_path} not found. Alerts disabled.")
+            print(f"--- [DEBUG] Config file NOT FOUND at {config_path} ---")
             self.config = {'alerts': {'enabled': False}}
             return
             
-        with open(config_path, 'r') as f:
-            self.config = yaml.safe_load(f)
+        try:
+            with open(config_path, 'r') as f:
+                self.config = yaml.safe_load(f)
+            print("--- [DEBUG] Trigger config loaded successfully ---")
+        except Exception as e:
+            print(f"--- [DEBUG] Error loading trigger config: {e} ---")
+            self.config = {'alerts': {'enabled': False}}
+            
         self.ops = {"gt": operator.gt, "lt": operator.lt, "eq": operator.eq}
 
     def evaluate(self, metric_name, current_value):
