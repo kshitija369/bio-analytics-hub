@@ -13,6 +13,8 @@ class OuraProvider(BiometricProvider):
     def fetch_data(self, start_time: datetime, end_time: datetime) -> List[Dict[str, Any]]:
         """Fetches heartrate, sleep, stress, and readiness data."""
         all_raw_data = []
+        # Local headers to ensure consistency
+        local_headers = {'Authorization': f'Bearer {self.pat}'}
         
         # 1. Fetch Heart Rate in 24h chunks
         current_start = start_time
@@ -23,7 +25,7 @@ class OuraProvider(BiometricProvider):
                 'start_datetime': current_start.strftime("%Y-%m-%dT%H:%M:%SZ"),
                 'end_datetime': current_end.strftime("%Y-%m-%dT%H:%M:%SZ")
             }
-            hr_resp = requests.get(hr_url, headers=self.headers, params=params)
+            hr_resp = requests.get(hr_url, headers=local_headers, params=params)
             if hr_resp.status_code == 200:
                 hr_data = hr_resp.json().get('data', [])
                 for entry in hr_data:
@@ -37,23 +39,19 @@ class OuraProvider(BiometricProvider):
             'end_date': end_time.date().isoformat()
         }
         
-        endpoints = [
-            'daily_sleep', 
-            'daily_stress', 
-            'daily_readiness', 
-            'daily_activity'
-        ]
-        
+        endpoints = ['daily_sleep', 'daily_stress', 'daily_readiness', 'daily_activity']
         for endpoint in endpoints:
-            resp = requests.get(f"{self.base_url}/{endpoint}", headers=self.headers, params=params_daily)
+            url = f"{self.base_url}/{endpoint}"
+            resp = requests.get(url, headers=local_headers, params=params_daily)
             if resp.status_code == 200:
                 data = resp.json().get('data', [])
-                print(f"  [Oura Debug] Fetched {len(data)} records from {endpoint}")
+                print(f"  [Oura Debug] SUCCESS: Fetched {len(data)} from {endpoint}")
                 for entry in data:
                     entry['_metric_type'] = endpoint
                 all_raw_data.extend(data)
             else:
-                print(f"  [Oura Debug] ERROR fetching {endpoint}: {resp.status_code} - {resp.text}")
+                print(f"  [Oura Debug] FAILED {endpoint}: {resp.status_code} - {resp.text}")
+                print(f"  [Oura Debug] URL attempted: {url}")
             
         return all_raw_data
 
