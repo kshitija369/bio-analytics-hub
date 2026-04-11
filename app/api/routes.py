@@ -82,3 +82,17 @@ async def get_dashboard():
     # 3. Return HTML
     html_content = SomaticDashboard.get_html(df_normalized)
     return HTMLResponse(content=html_content, status_code=200)
+
+@router.get("/sync")
+async def trigger_sync():
+    """
+    Endpoint to trigger a fresh data sync (Oura pull + Unify).
+    """
+    from ..main import run_pipeline
+    try:
+        # Run the full 7-day sync
+        run_pipeline(hours_back=168)
+        return {"status": "success", "message": "7-day sync completed successfully."}
+    except Exception as e:
+        print(f"Sync error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

@@ -28,6 +28,16 @@ The dashboard is automatically localized to your system timezone (e.g., **PDT** 
 - **Local:** `python3 -m app.main pipeline 168` (Generates `unified_somatic_dashboard.html`)
 - **Cloud:** Visit `https://[YOUR-SERVICE-URL]/dashboard` to view the live interactive analyzer.
 
+### 4. Automated Cloud Sync
+To keep Oura data fresh in the cloud, set up a **Cloud Scheduler** job to trigger the `/sync` endpoint hourly:
+```bash
+gcloud scheduler jobs create http hourly-oura-sync \
+    --schedule="0 * * * *" \
+    --uri="https://[YOUR-SERVICE-URL]/sync" \
+    --http-method=GET \
+    --location=us-central1
+```
+
 ## Visualizing Insights
 Open `unified_somatic_dashboard.html` to see the **High-Contrast State Analyzer**:
 - **Row 1:** Master Practice Key (Indigo blocks).
