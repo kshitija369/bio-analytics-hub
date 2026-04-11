@@ -16,9 +16,12 @@ class AppleHealthProvider(BiometricProvider):
         
         for m in metrics:
             metric_name = m.get('name')
+            data_entries = m.get('data', [])
+            print(f"  [Debug] Processing metric: {metric_name} ({len(data_entries)} points)")
+            
             # Filter for relevant metrics
             if metric_name in ['heart_rate', 'heart_rate_variability', 'mindful_minutes']:
-                for entry in m.get('data', []):
+                for entry in data_entries:
                     val = entry.get('qty') or entry.get('avg') or entry.get('value')
                     if val is not None:
                         standardized.append({
