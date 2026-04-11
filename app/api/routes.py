@@ -145,7 +145,7 @@ async def test_oura_connectivity():
     try:
         url = "https://api.ouraring.com/v2/usercollection/daily_readiness"
         resp = requests.get(url, headers=headers, params={'start_date': '2026-04-10', 'end_date': '2026-04-10'}, timeout=10)
-        results["readiness"] = resp.json().get('data', [{}])[0].keys() if resp.status_code == 200 else resp.text
+        results["readiness"] = list(resp.json().get('data', [{}])[0].keys()) if resp.status_code == 200 else resp.text
     except Exception as e:
         results["readiness_error"] = str(e)
 
