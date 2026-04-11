@@ -108,6 +108,7 @@ async def db_status():
     """
     import os
     db = get_db()
+    # CRITICAL: Initialize first to set db_path attributes
     db._ensure_initialized()
     
     status = {
@@ -137,16 +138,30 @@ async def test_oura_connectivity():
     import os
     pat = os.environ.get("OURA_PAT", "")
     headers = {'Authorization': f'Bearer {pat.strip()}'}
-    url = "https://api.ouraring.com/v2/usercollection/daily_readiness"
     
+    results = {}
+    
+    # 1. Test Readiness
     try:
+        url = "https://api.ouraring.com/v2/usercollection/daily_readiness"
         resp = requests.get(url, headers=headers, params={'start_date': '2026-04-10', 'end_date': '2026-04-10'}, timeout=10)
-        return {
-            "status_code": resp.status_code,
-            "headers_received": dict(resp.headers),
-            "payload_snippet": resp.text[:500],
-            "token_length": len(pat) if pat else 0,
-            "url_attempted": url
-        }
+        results["readiness"] = resp.json().get('data', [{}])[0].keys() if resp.status_code == 200 else resp.text
     except Exception as e:
-        return {"error": str(e)}
+        results["readiness_error"] = str(e)
+
+    # 2. Test Sleep (High-Res HRV source)
+    try:
+        url = "https://api.ouraring.com/v2/usercollection/sleep"
+        resp = requests.get(url, headers=headers, params={'start_date': '2026-04-10', 'end_date': '2026-04-10'}, timeout=10)
+        if resp.status_code == 200 and resp.json().get('data'):
+            sleep_entry = resp.json()['data'][0]
+            results["sleep_keys"] = list(sleep_entry.keys())
+            if 'hrv' in sleep_entry:
+                results["hrv_keys"] = list(sleep_entry['hrv'].keys())
+        else:
+            results["sleep_status"] = resp.status_code
+            results["sleep_payload"] = resp.text
+    except Exception as e:
+        results["sleep_error"] = str(e)
+        
+    return results
