@@ -163,6 +163,18 @@ class SomaticDashboard:
                     marker=dict(size=6, color='#2ECC71', symbol='diamond', line=dict(width=1, color='white'))
                 ), row=4, col=1)
 
+            # Oura HRV Balance (Fallback/Context)
+            if 'hrv_balance_oura' in df.columns:
+                oura_bal = df[df['hrv_balance_oura'].notna()]
+                fig.add_trace(go.Scatter(
+                    x=oura_bal.index, y=oura_bal['hrv_balance_oura'],
+                    name='Oura HRV Balance',
+                    mode='lines+markers',
+                    line=dict(color='#3498DB', width=1, dash='dot'),
+                    marker=dict(size=4, symbol='circle'),
+                    opacity=0.6
+                ), row=4, col=1)
+
             if not practice_data.empty and 'heart_rate_variability' in practice_data.columns:
                 fig.add_trace(go.Scatter(
                     x=practice_data.index, y=practice_data['heart_rate_variability'],

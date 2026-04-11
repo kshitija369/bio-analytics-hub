@@ -129,6 +129,20 @@ def test_apple_health_avg_value_extraction():
     assert len(standardized) == 1
     assert standardized[0]["val"] == 75.0
 
+def test_oura_readiness_hrv_balance_fallback():
+    provider = OuraProvider(pat="test")
+    raw_data = [
+        {
+            "_metric_type": "daily_readiness",
+            "day": "2026-04-11",
+            "contributors": {
+                "hrv_balance": 88
+            }
+        }
+    ]
+    standardized = provider.transform_to_standard(raw_data)
+    assert any(e["metric"] == "hrv_balance" and e["val"] == 88.0 for e in standardized)
+
 def test_apple_health_empty_payload():
     provider = AppleHealthProvider()
     assert provider.transform_to_standard({}) == []
