@@ -9,12 +9,10 @@ class SomaticDashboard:
     def _get_session_spans(df):
         """Helper to find continuous blocks of 'Witnessing'"""
         if df.empty: return []
-        # Group samples that are within 10 minutes of each other to form a session
         diffs = df.index.to_series().diff() > timedelta(minutes=10)
         groups = diffs.cumsum()
         spans = []
         for _, group in df.groupby(groups):
-            # If it's a single point, give it a small duration (e.g. 1 min) for visibility
             start = group.index.min()
             end = group.index.max()
             if start == end:
@@ -37,122 +35,146 @@ class SomaticDashboard:
             'hrv_baseline': 'rgba(189, 195, 199, 0.5)', # Gray
             'practice_hr': '#9B59B6',       # Vibrant Purple (ACTIVE)
             'practice_hrv': '#2ECC71',      # Radiant Green (ACTIVE)
-            'state_key': '#8E44AD',          # Dark Purple (State Key)
+            'readiness': '#3498DB',         # Blue
+            'sleep': '#F1C40F',             # Yellow
+            'state_key': '#8E44AD',          # Dark Purple
             'bg': '#0A0A0A',
             'grid': '#1A1A1A',
             'text': '#FFFFFF'
         }
 
-        # 3. Add Binary State Column (The Key to Intuition)
-        if 'state_label' in df.columns:
-            df['is_practice'] = (df['state_label'] == 'Witnessing').astype(int)
-        else:
-            df['is_practice'] = 0
+        # 3. Process Daily Summary Data
+        # Group by date to get daily metrics for the table
+        daily_df = df.resample('D').agg({
+            'is_practice': 'sum',
+            'heart_rate': 'mean',
+            'heart_rate_variability': 'mean',
+            'readiness_score': 'max',
+            'sleep_score': 'max',
+            'steps': 'max'
+        }).dropna(how='all')
+        
+        daily_df.index = daily_df.index.strftime('%Y-%m-%d')
 
-        # 4. Initialize Subplots (3 Rows for Master Key)
+        # 4. Initialize Subplots (5 Rows: Table + 4 Charts)
         fig = make_subplots(
-            rows=3, cols=1, 
+            rows=5, cols=1, 
             shared_xaxes=True, 
-            vertical_spacing=0.04,
-            subplot_titles=("(1) Master Practice Key", "(2) Somatic Baseline (BPM)", "(3) Recovery Density (HRV)"),
-            row_heights=[0.1, 0.45, 0.45]
+            vertical_spacing=0.03,
+            subplot_titles=("(1) Daily Research Metrics", "(2) Master Practice Key", "(3) Somatic Flow (BPM)", "(4) Recovery Density (HRV)", "(5) Daily Bio-Load (Scores)"),
+            row_heights=[0.15, 0.05, 0.25, 0.25, 0.3],
+            specs=[[{"type": "table"}], [{"type": "scatter"}], [{"type": "scatter"}], [{"type": "scatter"}], [{"type": "scatter"}]]
         )
 
         # ----------------------------------------------------------------------
-        # ROW 1: MASTER PRACTICE KEY (Binary state indicator)
+        # ROW 1: DAILY SUMMARY TABLE
         # ----------------------------------------------------------------------
-        fig.add_trace(go.Scatter(
-            x=df.index, y=df['is_practice'],
-            name='Practice Active',
-            fill='tozeroy',
-            line=dict(color=COLORS['state_key'], width=2),
-            fillcolor=COLORS['state_key'],
-            opacity=0.8,
-            mode='lines'
+        fig.add_trace(go.Table(
+            header=dict(
+                values=["Date", "Practice (Min)", "Avg HR", "Avg HRV", "Readiness", "Sleep", "Steps"],
+                fill_color='#222', align='left', font=dict(color='white', size=12)
+            ),
+            cells=dict(
+                values=[
+                    daily_df.index,
+                    daily_df['is_practice'].round(0),
+                    daily_df['heart_rate'].round(1),
+                    daily_df['heart_rate_variability'].round(1),
+                    daily_df['readiness_score'],
+                    daily_df['sleep_score'],
+                    daily_df['steps']
+                ],
+                fill_color='#111', align='left', font=dict(color='white', size=11)
+            )
         ), row=1, col=1)
 
         # ----------------------------------------------------------------------
-        # ROW 2: HEART RATE (Dynamic Color/Thickness Change)
+        # ROW 2: MASTER PRACTICE KEY
         # ----------------------------------------------------------------------
-        if 'heart_rate' in df.columns:
-            # Baseline HR (Faded)
+        if 'is_practice' in df.columns:
             fig.add_trace(go.Scatter(
-                x=df.index, y=df['heart_rate'],
-                name='Unified HR',
-                line=dict(color=COLORS['hr_baseline'], width=1.5),
-                mode='lines',
-                opacity=0.7
+                x=df.index, y=df['is_practice'],
+                name='Practice Active', fill='tozeroy',
+                line=dict(color=COLORS['state_key'], width=2),
+                fillcolor=COLORS['state_key'], opacity=0.8
             ), row=2, col=1)
 
-            # Apple Watch Specific Samples
+        # ----------------------------------------------------------------------
+        # ROW 3: HEART RATE
+        # ----------------------------------------------------------------------
+        if 'heart_rate' in df.columns:
+            fig.add_trace(go.Scatter(
+                x=df.index, y=df['heart_rate'],
+                name='Unified HR', line=dict(color=COLORS['hr_baseline'], width=1.5),
+                opacity=0.7
+            ), row=3, col=1)
+
             if 'heart_rate_apple' in df.columns:
                 apple_hr = df[df['heart_rate_apple'].notna()]
                 fig.add_trace(go.Scatter(
                     x=apple_hr.index, y=apple_hr['heart_rate_apple'],
-                    name='Apple Watch HR',
-                    mode='markers',
-                    marker=dict(size=6, color='#2ECC71', symbol='diamond', line=dict(width=1, color='white')),
-                    opacity=0.9
-                ), row=2, col=1)
+                    name='Apple Watch HR', mode='markers',
+                    marker=dict(size=6, color='#2ECC71', symbol='diamond', line=dict(width=1, color='white'))
+                ), row=3, col=1)
 
-            # Witness HR (Thick/Vibrant)
-            practice_data = df[df['is_practice'] == 1]
+            practice_data = df[df.get('is_practice', 0) == 1]
             if not practice_data.empty:
-                # We use markers+lines to ensure gaps are handled visually correctly
                 fig.add_trace(go.Scatter(
                     x=practice_data.index, y=practice_data['heart_rate'],
-                    name='Witness HR',
-                    line=dict(color=COLORS['practice_hr'], width=4),
-                    mode='lines+markers',
-                    marker=dict(size=4, color=COLORS['practice_hr'])
-                ), row=2, col=1)
+                    name='Witness HR', line=dict(color=COLORS['practice_hr'], width=4),
+                    mode='lines+markers', marker=dict(size=4, color=COLORS['practice_hr'])
+                ), row=3, col=1)
 
         # ----------------------------------------------------------------------
-        # ROW 3: HRV (Dynamic Color/Thickness Change)
+        # ROW 4: HRV
         # ----------------------------------------------------------------------
         if 'heart_rate_variability' in df.columns:
-            # Baseline HRV (Faded)
             fig.add_trace(go.Scatter(
                 x=df.index, y=df['heart_rate_variability'],
-                name='Unified HRV',
-                line=dict(color=COLORS['hrv_baseline'], width=1.5),
-                mode='lines',
+                name='Unified HRV', line=dict(color=COLORS['hrv_baseline'], width=1.5),
                 opacity=0.7
-            ), row=3, col=1)
+            ), row=4, col=1)
 
-            # Apple Watch Specific HRV
             if 'heart_rate_variability_apple' in df.columns:
                 apple_hrv = df[df['heart_rate_variability_apple'].notna()]
                 fig.add_trace(go.Scatter(
                     x=apple_hrv.index, y=apple_hrv['heart_rate_variability_apple'],
-                    name='Apple Watch HRV',
-                    mode='markers',
-                    marker=dict(size=6, color='#2ECC71', symbol='diamond', line=dict(width=1, color='white')),
-                    opacity=0.9
-                ), row=3, col=1)
+                    name='Apple Watch HRV', mode='markers',
+                    marker=dict(size=6, color='#2ECC71', symbol='diamond', line=dict(width=1, color='white'))
+                ), row=4, col=1)
 
-            # Witness HRV (Thick/Radiant)
             if not practice_data.empty:
                 fig.add_trace(go.Scatter(
                     x=practice_data.index, y=practice_data['heart_rate_variability'],
-                    name='Witness HRV',
-                    line=dict(color=COLORS['practice_hrv'], width=4),
-                    mode='lines+markers',
-                    marker=dict(size=4, color=COLORS['practice_hrv'])
-                ), row=3, col=1)
+                    name='Witness HRV', line=dict(color=COLORS['practice_hrv'], width=4),
+                    mode='lines+markers', marker=dict(size=4, color=COLORS['practice_hrv'])
+                ), row=4, col=1)
+
+        # ----------------------------------------------------------------------
+        # ROW 5: DAILY BIO-LOAD (Readiness & Sleep)
+        # ----------------------------------------------------------------------
+        if 'readiness_score' in df.columns:
+            # We use forward-fill for scores to make them bars or continuous lines
+            fig.add_trace(go.Scatter(
+                x=df.index, y=df['readiness_score'].ffill(),
+                name='Readiness Score', line=dict(color=COLORS['readiness'], width=3),
+                mode='lines'
+            ), row=5, col=1)
+        
+        if 'sleep_score' in df.columns:
+            fig.add_trace(go.Scatter(
+                x=df.index, y=df['sleep_score'].ffill(),
+                name='Sleep Score', line=dict(color=COLORS['sleep'], width=3, dash='dot'),
+                mode='lines'
+            ), row=5, col=1)
+
+        # 5. Global Layout
         fig.update_layout(
-            template="plotly_dark",
-            paper_bgcolor=COLORS['bg'],
-            plot_bgcolor=COLORS['bg'],
-            height=1000,
-            hovermode="x unified",
-            title=dict(
-                text="<b>SOMATIC WITNESS LOG:</b> High-Contrast State Analyzer",
-                font=dict(size=24, color=COLORS['text']),
-                x=0.05
-            ),
+            template="plotly_dark", paper_bgcolor=COLORS['bg'], plot_bgcolor=COLORS['bg'],
+            height=1200, hovermode="x unified",
+            title=dict(text="<b>SOMATIC RESEARCH HUB:</b> Comprehensive Witness Map", font=dict(size=24, color=COLORS['text']), x=0.05),
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-            xaxis3=dict(
+            xaxis5=dict(
                 rangeselector=dict(
                     buttons=list([
                         dict(count=1, label="1h", step="hour", stepmode="backward"),
@@ -160,13 +182,10 @@ class SomaticDashboard:
                         dict(count=1, label="1d", step="day", stepmode="backward"),
                         dict(count=7, label="7d", step="day", stepmode="backward"),
                     ]),
-                    bgcolor="#222",
-                    activecolor=COLORS['practice_hrv'],
-                    font=dict(color="white")
+                    bgcolor="#222", activecolor=COLORS['practice_hrv'], font=dict(color="white")
                 ),
-                rangeslider=dict(visible=True, thickness=0.03),
-                type="date",
-                title_text=f"Timeline ({local_tz_short})"
+                rangeslider=dict(visible=True, thickness=0.02),
+                type="date", title_text=f"Timeline ({local_tz_short})"
             )
         )
 
@@ -184,29 +203,17 @@ class SomaticDashboard:
 
     @staticmethod
     def perform_witness_zoom(df: pd.DataFrame, practice_label="Witnessing"):
-        """
-        Calculates HRV Change % from the 15 minutes before 
-        the practice to the 15 minutes during.
-        """
         if 'heart_rate_variability' not in df.columns or 'state_label' not in df.columns:
             return "Insufficient data for Witness Zoom."
-
         practice_starts = df[df['state_label'] == practice_label].index
         if practice_starts.empty:
             return f"No sessions found for {practice_label}."
-
         start_time = practice_starts[0]
-        
-        # 15 mins before
         pre_mask = (df.index >= start_time - timedelta(minutes=15)) & (df.index < start_time)
         pre_hrv = df.loc[pre_mask, 'heart_rate_variability'].mean()
-        
-        # 15 mins during
         during_mask = (df.index >= start_time) & (df.index <= start_time + timedelta(minutes=15))
         during_hrv = df.loc[during_mask, 'heart_rate_variability'].mean()
-        
         if pd.isna(pre_hrv) or pd.isna(during_hrv):
             return "Missing baseline or practice HRV data for zoom."
-            
         change_pct = ((during_hrv - pre_hrv) / pre_hrv) * 100
         return f"Witness Zoom Analysis ({practice_label}):\n  Pre-Practice HRV: {pre_hrv:.2f}\n  During-Practice HRV: {during_hrv:.2f}\n  Change: {change_pct:+.2f}%"
