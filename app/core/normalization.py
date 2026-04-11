@@ -51,13 +51,22 @@ class SomaticNormalizer:
             else x['ts'].tz_localize('UTC'), axis=1
         )
         
+        # Standardize source names for cleaner columns
+        df['source_key'] = df['source'].apply(lambda x: 'apple' if 'Apple' in str(x) else 'oura')
+        
+        # Create a unique metric name per source (e.g., heart_rate_apple)
+        df['metric_with_source'] = df.apply(lambda row: f"{row['metric']}_{row['source_key']}", axis=1)
+        
         df = df.set_index('ts')
         
-        # Pivot to have metrics as columns for easier time-series manipulation
-        pivoted = df.pivot_table(index='ts', columns='metric', values='val', aggfunc='mean')
+        # Pivot using the source-specific metric names
+        pivoted = df.pivot_table(index='ts', columns='metric_with_source', values='val', aggfunc='mean')
         
+        # Also include the generic metric names (mean of both sources) for backward compatibility
+        pivoted_generic = df.pivot_table(index='ts', columns='metric', values='val', aggfunc='mean')
+        pivoted = pd.concat([pivoted, pivoted_generic], axis=1)
+
         # Capture tags (if any exist) to preserve state_labels
-        # We take the 'max' (or most frequent) tag for each minute
         tags = df.pivot_table(index='ts', columns='metric', values='tag', aggfunc='first')
         if 'mindful_minutes' in tags.columns:
              pivoted['state_label'] = tags['mindful_minutes'].fillna('Baseline')

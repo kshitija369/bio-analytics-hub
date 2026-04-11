@@ -78,11 +78,22 @@ class SomaticDashboard:
             # Baseline HR (Faded)
             fig.add_trace(go.Scatter(
                 x=df.index, y=df['heart_rate'],
-                name='Baseline HR',
+                name='Unified HR',
                 line=dict(color=COLORS['hr_baseline'], width=1.5),
                 mode='lines',
                 opacity=0.7
             ), row=2, col=1)
+
+            # Apple Watch Specific Samples
+            if 'heart_rate_apple' in df.columns:
+                apple_hr = df[df['heart_rate_apple'].notna()]
+                fig.add_trace(go.Scatter(
+                    x=apple_hr.index, y=apple_hr['heart_rate_apple'],
+                    name='Apple Watch HR',
+                    mode='markers',
+                    marker=dict(size=6, color='#2ECC71', symbol='diamond', line=dict(width=1, color='white')),
+                    opacity=0.9
+                ), row=2, col=1)
 
             # Witness HR (Thick/Vibrant)
             practice_data = df[df['is_practice'] == 1]
@@ -103,21 +114,25 @@ class SomaticDashboard:
             # Baseline HRV (Faded)
             fig.add_trace(go.Scatter(
                 x=df.index, y=df['heart_rate_variability'],
-                name='Baseline HRV',
+                name='Unified HRV',
                 line=dict(color=COLORS['hrv_baseline'], width=1.5),
                 mode='lines',
                 opacity=0.7
             ), row=3, col=1)
 
+            # Apple Watch Specific HRV
+            if 'heart_rate_variability_apple' in df.columns:
+                apple_hrv = df[df['heart_rate_variability_apple'].notna()]
+                fig.add_trace(go.Scatter(
+                    x=apple_hrv.index, y=apple_hrv['heart_rate_variability_apple'],
+                    name='Apple Watch HRV',
+                    mode='markers',
+                    marker=dict(size=6, color='#2ECC71', symbol='diamond', line=dict(width=1, color='white')),
+                    opacity=0.9
+                ), row=3, col=1)
+
             # Witness HRV (Thick/Radiant)
             if not practice_data.empty:
-                fig.add_trace(go.Scatter(
-                    x=practice_data.index, y=practice_data['heart_rate_variability'],
-                    name='Witness HRV',
-                    line=dict(color=COLORS['practice_hrv'], width=4),
-                    mode='lines+markers',
-                    marker=dict(size=4, color=COLORS['practice_hrv'])
-                ), row=3, col=1)
 
         # 5. Smart Zoom & Dark Mode Layout
         fig.update_layout(
