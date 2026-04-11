@@ -115,7 +115,8 @@ async def db_status():
         "db_path": db.db_path,
         "exists": os.path.exists(db.db_path) if db.db_path else False,
         "size_bytes": os.path.getsize(db.db_path) if db.db_path and os.path.exists(db.db_path) else 0,
-        "record_counts": {}
+        "record_counts": {},
+        "experiment_counts": {}
     }
     
     if status["exists"]:
@@ -124,10 +125,39 @@ async def db_status():
             with sqlite3.connect(db.db_path) as conn:
                 cursor = conn.execute("SELECT metric, count(*) FROM biometrics GROUP BY metric")
                 status["record_counts"] = {row[0]: row[1] for row in cursor.fetchall()}
+                
+                exp_cursor = conn.execute("SELECT experiment_id, count(*) FROM experiment_results GROUP BY experiment_id")
+                status["experiment_counts"] = {row[0]: row[1] for row in exp_cursor.fetchall()}
         except Exception as e:
             status["error"] = str(e)
             
     return status
+
+@router.get("/experiments/evaluate")
+async def evaluate_experiments(experiment_id: str = "EXP-001", target_date: str = None):
+    """
+    Triggers the evaluation of a specific experiment.
+    Target date defaults to today.
+    """
+    from ..engine.experiment_manager import ExperimentManager
+    from datetime import date
+    
+    manager = ExperimentManager()
+    
+    if target_date:
+        eval_date = date.fromisoformat(target_date)
+    else:
+        eval_date = date.today()
+        
+    try:
+        result = manager.evaluate_experiment_for_date(experiment_id, eval_date)
+        if result:
+            return {"status": "success", "result": result}
+        else:
+            return {"status": "no_data", "message": f"No data available for experiment {experiment_id} on {eval_date}"}
+    except Exception as e:
+        print(f"Experiment evaluation error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/test-oura")
 async def test_oura_connectivity():

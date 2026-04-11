@@ -7,14 +7,15 @@ from typing import List, Dict, Any
 DB_FILE = "Somatic_Log.sqlite" # Local fallback
 
 class SomaticDatabase:
-    def __init__(self, db_path=None):
+    def __init__(self, db_path=None, working_db=None):
         self._db_path_override = db_path
+        self._working_db_override = working_db
         self._initialized = False
         
         # Two-Tier Strategy:
         # 1. working_db: Local /tmp file for high-speed, no-lock R/W
         # 2. persistent_db: The FUSE mount at /app/data for backup
-        self.working_db = "/tmp/Somatic_Log_Working.sqlite"
+        self.working_db = working_db or "/tmp/Somatic_Log_Working.sqlite"
         self.persistent_db = "/app/data/Somatic_Log.sqlite"
 
     def _ensure_initialized(self):
@@ -26,7 +27,8 @@ class SomaticDatabase:
             self.persistent_db = self._db_path_override
         elif not os.path.exists("/app/data"):
             # If not on GCP, use local DB as the working DB directly
-            self.working_db = DB_FILE
+            if not self._working_db_override:
+                self.working_db = DB_FILE
             self.persistent_db = DB_FILE
 
         print(f"--- [DB DEBUG] Working: {self.working_db}, Persistent: {self.persistent_db} ---")
@@ -54,8 +56,18 @@ class SomaticDatabase:
                         tag TEXT
                     )
                 """)
+                conn.execute("""
+                    CREATE TABLE IF NOT EXISTS experiment_results (
+                        experiment_id TEXT NOT NULL,
+                        ts TEXT NOT NULL,
+                        metric TEXT NOT NULL,
+                        val REAL NOT NULL,
+                        metadata TEXT
+                    )
+                """)
                 conn.execute("CREATE INDEX IF NOT EXISTS idx_ts ON biometrics(ts)")
                 conn.execute("CREATE INDEX IF NOT EXISTS idx_metric ON biometrics(metric)")
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_exp_id ON experiment_results(experiment_id)")
             print("--- [DB DEBUG] Working database initialized successfully ---")
             self.db_path = self.working_db
             self._initialized = True
@@ -80,6 +92,15 @@ class SomaticDatabase:
             conn.executemany("""
                 INSERT INTO biometrics (ts, metric, val, unit, source, tag)
                 VALUES (:ts, :metric, :val, :unit, :source, :tag)
+            """, entries)
+        self._flush_to_persistence()
+
+    def insert_experiment_results(self, entries: List[Dict[str, Any]]):
+        self._ensure_initialized()
+        with sqlite3.connect(self.working_db) as conn:
+            conn.executemany("""
+                INSERT INTO experiment_results (experiment_id, ts, metric, val, metadata)
+                VALUES (:experiment_id, :ts, :metric, :val, :metadata)
             """, entries)
         self._flush_to_persistence()
 
