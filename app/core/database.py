@@ -79,6 +79,21 @@ class SomaticDatabase:
 
     def get_data(self, start_time: datetime, end_time: datetime, metrics: List[str] = None) -> List[Dict[str, Any]]:
         self._ensure_initialized()
+        
+        # FUSE-Safe Read Strategy:
+        # If we are on GCP, copy the DB to local /tmp to avoid FUSE locking issues
+        active_db_path = self.db_path
+        if "/app/data" in self.db_path:
+            import shutil
+            temp_db = "/tmp/dashboard_read.sqlite"
+            try:
+                # Use shutil.copy2 to copy the file locally for reading
+                shutil.copy2(self.db_path, temp_db)
+                active_db_path = temp_db
+                print(f"--- [DEBUG] Using local DB copy for dashboard read: {temp_db} ---")
+            except Exception as e:
+                print(f"--- [DEBUG] DB local copy failed, falling back to direct: {e} ---")
+
         query = "SELECT ts, metric, val, unit, source, tag FROM biometrics WHERE ts BETWEEN ? AND ?"
         params = [start_time.isoformat(), end_time.isoformat()]
         
@@ -86,17 +101,7 @@ class SomaticDatabase:
             query += " AND metric IN ({})".format(','.join(['?'] * len(metrics)))
             params.extend(metrics)
             
-        # Use a longer timeout and specific FUSE flags if possible
-        # For reading, we can use uri=True to open in read-only mode to avoid locks
-        try:
-            db_uri = f"file:{self.db_path}?mode=ro" if "/app/data" in self.db_path else self.db_path
-            with sqlite3.connect(db_uri, timeout=30, uri=True) as conn:
-                conn.row_factory = sqlite3.Row
-                rows = conn.execute(query, params).fetchall()
-                return [dict(row) for row in rows]
-        except Exception as e:
-            # Fallback to normal connection if URI fails
-            with sqlite3.connect(self.db_path, timeout=30) as conn:
-                conn.row_factory = sqlite3.Row
-                rows = conn.execute(query, params).fetchall()
-                return [dict(row) for row in rows]
+        with sqlite3.connect(active_db_path, timeout=30) as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(query, params).fetchall()
+            return [dict(row) for row in rows]
