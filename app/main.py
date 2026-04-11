@@ -1,11 +1,9 @@
 from fastapi import FastAPI
 import os
 
-# --- [PRODUCTION STARTUP] ---
-# Slim instantiation for Cloud Run health checks.
-
 app = FastAPI(title="Witness State Monitoring")
 
+# Simple health endpoints
 @app.get("/")
 async def root():
     return {"status": "alive", "message": "Witness State Monitoring API"}
@@ -14,18 +12,12 @@ async def root():
 async def health():
     return {"status": "ok"}
 
-# The router is included only when needed or via a deferred import
-def include_deferred_router():
-    try:
-        from app.api.routes import router
-        app.include_router(router)
-        return True
-    except Exception as e:
-        print(f"Deferred router load error: {e}")
-        return False
-
-# Trigger the router load
-include_deferred_router()
+# Router inclusion (Logic-heavy code deferred to here)
+try:
+    from app.api.routes import router
+    app.include_router(router)
+except Exception as e:
+    print(f"--- [CRITICAL] Router load failed: {e} ---")
 
 def run_pipeline(hours_back=168, practice_sessions=None):
     """Pipeline logic (only runs in CLI mode)"""
@@ -66,6 +58,7 @@ if __name__ == "__main__":
     
     if mode == "server":
         port = int(os.environ.get("PORT", 8080))
+        # Note: Production uses gunicorn via entrypoint
         uvicorn.run("app.main:app", host="0.0.0.0", port=port, reload=False)
     else:
         from datetime import datetime, timedelta, timezone
