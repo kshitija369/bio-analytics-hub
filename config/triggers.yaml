@@ -1,0 +1,27 @@
+# Somatic Trigger Configuration
+alerts:
+  enabled: true
+  provider: "pushover"
+  cooldown_minutes: 30
+
+# Keys (to be set as environment variables: PUSHOVER_USER_KEY, PUSHOVER_API_TOKEN)
+# Visit https://pushover.net to get these.
+
+thresholds:
+  - id: "stress_spike"
+    metric: "heart_rate"
+    condition: "gt"
+    value: 100
+    payload:
+      title: "Witness Prompt"
+      message: "High HR detected ({value} BPM). Center into the Witness state?"
+      priority: 1 # High priority (Watch haptic)
+      
+  - id: "low_recovery"
+    metric: "heart_rate_variability"
+    condition: "lt"
+    value: 30
+    payload:
+      title: "Nervous System Alert"
+      message: "HRV has dropped to {value}ms. Consider a recovery practice."
+      priority: 0

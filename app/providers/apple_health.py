@@ -27,6 +27,6 @@ class AppleHealthProvider(BiometricProvider):
                             "val": float(val),
                             "unit": m.get('units'),
                             "source": "AppleWatch_v9",
-                            "tag": "mindful" if metric_name == 'mindful_minutes' else "baseline"
+                            "tag": "Witnessing" if metric_name == 'mindful_minutes' else "baseline"
                         })
         return standardized

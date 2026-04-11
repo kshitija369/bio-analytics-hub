@@ -5,6 +5,7 @@ from app.providers.oura import OuraProvider
 from app.core.database import SomaticDatabase
 from app.core.normalization import SomaticNormalizer
 from app.visualization.dashboard import SomaticDashboard
+from app.core.alerts import SomaticTriggerEngine
 from datetime import datetime, timedelta, timezone
 import os
 
@@ -18,6 +19,7 @@ def run_pipeline(hours_back=168, practice_sessions=None):
     print(f"\n--- Running Witness State Data Pipeline (Last {hours_back} hours) ---")
     db = SomaticDatabase()
     oura = OuraProvider()
+    trigger_engine = SomaticTriggerEngine()
     
     # 1. Fetch Oura Data (Pull-based)
     now = datetime.now(timezone.utc)
@@ -30,6 +32,10 @@ def run_pipeline(hours_back=168, practice_sessions=None):
     if std_oura:
         db.insert_biometrics(std_oura)
         print(f"Stored {len(std_oura)} new entries from Oura.")
+        
+        # Evaluate triggers for new data
+        for entry in std_oura:
+            trigger_engine.evaluate(entry['metric'], entry['val'])
 
     # 2. Retrieve Unified Data from DB (both Oura and Apple Health)
     unified_raw = db.get_data(start, now)

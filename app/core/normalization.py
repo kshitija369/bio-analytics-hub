@@ -2,7 +2,29 @@ import pandas as pd
 from typing import List, Dict, Any
 from datetime import datetime
 
+from tzlocal import get_localzone
+
 class SomaticNormalizer:
+    @staticmethod
+    def localize_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+        """Detects system timezone and translates UTC indices."""
+        if df.empty:
+            return df
+        
+        local_tz = str(get_localzone()) # e.g., 'America/Los_Angeles'
+        
+        # 1. Convert index to datetime if it isn't
+        if not pd.api.types.is_datetime64_any_dtype(df.index):
+            df.index = pd.to_datetime(df.index)
+        
+        # 2. Localize: UTC -> System Local
+        if df.index.tz is None:
+            df.index = df.index.tz_localize('UTC').tz_convert(local_tz)
+        else:
+            df.index = df.index.tz_convert(local_tz)
+            
+        return df
+
     @staticmethod
     def normalize_to_timeseries(data: List[Dict[str, Any]], resample_rate='1min') -> pd.DataFrame:
         """
@@ -24,13 +46,22 @@ class SomaticNormalizer:
         df = df.set_index('ts')
         
         # Pivot to have metrics as columns for easier time-series manipulation
-        # Note: This assumes one value per metric per timestamp, or we take the mean
         pivoted = df.pivot_table(index='ts', columns='metric', values='val', aggfunc='mean')
         
-        # Resample and Interpolate
-        resampled = pivoted.resample(resample_rate).mean()
-        # Linear interpolation to fill gaps (max_gap could be added later)
-        interpolated = resampled.interpolate(method='linear')
+        # Capture tags (if any exist) to preserve state_labels
+        # We take the 'max' (or most frequent) tag for each minute
+        tags = df.pivot_table(index='ts', columns='metric', values='tag', aggfunc='first')
+        if 'mindful_minutes' in tags.columns:
+             pivoted['state_label'] = tags['mindful_minutes'].fillna('Baseline')
+        else:
+             pivoted['state_label'] = 'Baseline'
+
+        # Resample and Interpolate metrics
+        resampled_metrics = pivoted.drop(columns=['state_label']).resample(resample_rate).mean()
+        interpolated = resampled_metrics.interpolate(method='linear')
+        
+        # Resample state_label (forward fill or similar)
+        interpolated['state_label'] = pivoted['state_label'].resample(resample_rate).ffill().reindex(interpolated.index).fillna('Baseline')
         
         return interpolated
 
