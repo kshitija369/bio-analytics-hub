@@ -23,12 +23,10 @@ Biometric triggers (e.g., HR > 100 BPM) send haptic "Witness Prompts" to your Ap
 - **Config:** Managed in `config/triggers.yaml`.
 - **Secrets:** Requires `PUSHOVER_USER_KEY` and `PUSHOVER_API_TOKEN`.
 
-### 3. Local Dashboard
+### 3. Local & Cloud Dashboard
 The dashboard is automatically localized to your system timezone (e.g., **PDT** for Palo Alto).
-```bash
-# Generate/Refresh locally
-python3 -m app.main pipeline 168
-```
+- **Local:** `python3 -m app.main pipeline 168` (Generates `unified_somatic_dashboard.html`)
+- **Cloud:** Visit `https://[YOUR-SERVICE-URL]/dashboard` to view the live interactive analyzer.
 
 ## Visualizing Insights
 Open `unified_somatic_dashboard.html` to see the **High-Contrast State Analyzer**:

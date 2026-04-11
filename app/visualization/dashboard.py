@@ -23,10 +23,9 @@ class SomaticDashboard:
         return spans
 
     @staticmethod
-    def generate(df: pd.DataFrame, output_path="unified_somatic_dashboard.html"):
+    def get_html(df: pd.DataFrame) -> str:
         if df.empty:
-            print("No data for dashboard.")
-            return
+            return "<html><body><h1>No data available for dashboard.</h1></body></html>"
 
         # 1. Apply Localization
         df = SomaticNormalizer.localize_dataframe(df)
@@ -154,8 +153,14 @@ class SomaticDashboard:
         fig.update_xaxes(gridcolor=COLORS['grid'], zeroline=False)
         fig.update_yaxes(gridcolor=COLORS['grid'], zeroline=False)
         
-        fig.write_html(output_path)
-        print(f"High-contrast analyzer dashboard saved to {output_path} (Timezone: {local_tz_short})")
+        return fig.to_html(full_html=True, include_plotlyjs='cdn')
+
+    @staticmethod
+    def generate(df: pd.DataFrame, output_path="unified_somatic_dashboard.html"):
+        html_content = SomaticDashboard.get_html(df)
+        with open(output_path, "w") as f:
+            f.write(html_content)
+        print(f"High-contrast analyzer dashboard saved to {output_path}")
 
     @staticmethod
     def perform_witness_zoom(df: pd.DataFrame, practice_label="Witnessing"):

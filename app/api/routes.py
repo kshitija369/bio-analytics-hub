@@ -54,3 +54,31 @@ async def receive_apple_health_data(request: Request):
 @router.get("/health")
 async def health_check():
     return {"status": "alive"}
+
+@router.get("/dashboard")
+async def get_dashboard():
+    """
+    Serves the interactive High-Contrast State Analyzer.
+    """
+    from fastapi.responses import HTMLResponse
+    from ..core.normalization import SomaticNormalizer
+    from ..visualization.dashboard import SomaticDashboard
+    from datetime import datetime, timedelta, timezone
+    
+    db = get_db()
+    
+    # 1. Fetch last 7 days of data
+    now = datetime.now(timezone.utc)
+    start = now - timedelta(hours=168)
+    unified_raw = db.get_data(start, now)
+    
+    if not unified_raw:
+        return HTMLResponse("<html><body><h1>No data found in database for the last 7 days.</h1></body></html>")
+    
+    # 2. Normalize
+    normalizer = SomaticNormalizer()
+    df_normalized = normalizer.normalize_to_timeseries(unified_raw)
+    
+    # 3. Return HTML
+    html_content = SomaticDashboard.get_html(df_normalized)
+    return HTMLResponse(content=html_content, status_code=200)
