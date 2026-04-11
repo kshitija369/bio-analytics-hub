@@ -1,28 +1,23 @@
 from fastapi import APIRouter, Request, HTTPException
-from ..core.database import SomaticDatabase
-from ..providers.apple_health import AppleHealthProvider
-from ..core.alerts import SomaticTriggerEngine
 from datetime import datetime
-
-print("--- [STARTUP DEBUG] Entering app/api/routes.py ---")
 
 router = APIRouter()
 
-print("--- [STARTUP DEBUG] router initialized ---")
-
-# Lazy initializers to prevent startup crashes
+# Lazy initializers
 _db = None
 _trigger_engine = None
 
 def get_db():
     global _db
     if _db is None:
+        from ..core.database import SomaticDatabase
         _db = SomaticDatabase()
     return _db
 
 def get_trigger_engine():
     global _trigger_engine
     if _trigger_engine is None:
+        from ..core.alerts import SomaticTriggerEngine
         _trigger_engine = SomaticTriggerEngine()
     return _trigger_engine
 
@@ -31,6 +26,9 @@ async def receive_apple_health_data(request: Request):
     """
     Endpoint for receiving health data from Health Auto Export.
     """
+    # Imports inside to ensure fast startup
+    from ..providers.apple_health import AppleHealthProvider
+    
     db = get_db()
     trigger_engine = get_trigger_engine()
     provider = AppleHealthProvider()

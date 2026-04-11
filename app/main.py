@@ -1,11 +1,9 @@
-import uvicorn
 from fastapi import FastAPI
-import sys
 import os
 
-# --- [SURVIVAL INITIALIZATION] ---
-# We create the app instance instantly so uvicorn can bind to the port immediately.
-# We defer all other imports to prevent startup crashes.
+# --- [ULTRA-SLIM STARTUP] ---
+# No heavy imports (pandas, plotly, etc.) at the top level.
+# This guarantees the port binds in < 1 second.
 
 app = FastAPI(title="Witness State Monitoring")
 
@@ -17,16 +15,22 @@ async def root():
 async def health():
     return {"status": "ok"}
 
-# Lazy load the router to avoid startup dependency issues
-try:
-    from app.api.routes import router
-    app.include_router(router)
-    print("--- [STARTUP] Router integrated successfully ---")
-except Exception as e:
-    print(f"--- [STARTUP ERROR] Router failed to load: {e} ---")
+# The router is included only when needed or via a deferred import
+def include_deferred_router():
+    try:
+        from app.api.routes import router
+        app.include_router(router)
+        return True
+    except Exception as e:
+        print(f"Deferred router load error: {e}")
+        return False
+
+# Attempt to include router, but don't let it crash the startup
+include_deferred_router()
 
 def run_pipeline(hours_back=168, practice_sessions=None):
     """Pipeline logic (only runs in CLI mode)"""
+    # Imports moved inside to protect server startup
     from app.providers.oura import OuraProvider
     from app.core.database import SomaticDatabase
     from app.core.normalization import SomaticNormalizer
@@ -59,10 +63,10 @@ def run_pipeline(hours_back=168, practice_sessions=None):
 
 if __name__ == "__main__":
     import sys
+    import uvicorn
     mode = sys.argv[1] if len(sys.argv) > 1 else "pipeline"
     
     if mode == "server":
-        # Note: In Docker, uvicorn is called from the entrypoint, not here.
         port = int(os.environ.get("PORT", 8080))
         uvicorn.run(app, host="0.0.0.0", port=port)
     else:
