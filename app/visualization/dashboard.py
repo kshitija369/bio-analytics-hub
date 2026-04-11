@@ -125,14 +125,6 @@ class SomaticDashboard:
                 opacity=0.7
             ), row=3, col=1)
 
-            if 'heart_rate_apple' in df.columns:
-                apple_hr = df[df['heart_rate_apple'].notna()]
-                fig.add_trace(go.Scatter(
-                    x=apple_hr.index, y=apple_hr['heart_rate_apple'],
-                    name='Apple Watch HR', mode='markers',
-                    marker=dict(size=6, color='#2ECC71', symbol='diamond', line=dict(width=1, color='white'))
-                ), row=3, col=1)
-
             # Vibrant Practice HR
             if 'is_practice' in df.columns:
                 practice_data = df[df['is_practice'] == 1]
