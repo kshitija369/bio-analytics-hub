@@ -127,3 +127,26 @@ async def db_status():
             status["error"] = str(e)
             
     return status
+
+@router.get("/test-oura")
+async def test_oura_connectivity():
+    """
+    Diagnostic endpoint to test live Oura API connectivity.
+    """
+    import requests
+    import os
+    pat = os.environ.get("OURA_PAT", "")
+    headers = {'Authorization': f'Bearer {pat.strip()}'}
+    url = "https://api.ouraring.com/v2/usercollection/daily_readiness"
+    
+    try:
+        resp = requests.get(url, headers=headers, params={'start_date': '2026-04-10', 'end_date': '2026-04-10'}, timeout=10)
+        return {
+            "status_code": resp.status_code,
+            "headers_received": dict(resp.headers),
+            "payload_snippet": resp.text[:500],
+            "token_length": len(pat) if pat else 0,
+            "url_attempted": url
+        }
+    except Exception as e:
+        return {"error": str(e)}
