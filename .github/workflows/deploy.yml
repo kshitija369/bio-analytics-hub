@@ -24,20 +24,15 @@ jobs:
       id: auth
       uses: 'google-github-actions/auth@v2'
       with:
+        token_format: 'access_token' # Request an access token
         credentials_json: '${{ secrets.GCP_SA_KEY }}'
-
-    - name: Set up Cloud SDK
-      uses: 'google-github-actions/setup-gcloud@v2'
-
-    - name: 'Identify Service Account'
-      run: gcloud auth list
 
     - name: Login to Artifact Registry
       uses: docker/login-action@v3
       with:
         registry: ${{ env.REGION }}-docker.pkg.dev
-        username: _json_key
-        password: ${{ secrets.GCP_SA_KEY }}
+        username: oauth2accesstoken
+        password: ${{ steps.auth.outputs.access_token }}
 
     - name: Build and Push Container
       run: |-
