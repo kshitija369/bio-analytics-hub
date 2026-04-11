@@ -54,6 +54,10 @@ class SomaticNormalizer:
         # Standardize source names for cleaner columns
         df['source_key'] = df['source'].apply(lambda x: 'apple' if 'Apple' in str(x) else 'oura')
         
+        # Ensure 'heart_rate_variability' is standardized across sources
+        # (This handles cases where the metric might be tagged slightly differently in raw data)
+        df['metric'] = df['metric'].replace('heart_rate_variability_sdnn', 'heart_rate_variability')
+        
         # Create a unique metric name per source (e.g., heart_rate_apple)
         df['metric_with_source'] = df.apply(lambda row: f"{row['metric']}_{row['source_key']}", axis=1)
         

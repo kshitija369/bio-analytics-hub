@@ -207,8 +207,12 @@ class SomaticDashboard:
             )
         )
 
-        fig.update_xaxes(gridcolor=COLORS['grid'], zeroline=False)
+        fig.update_xaxes(gridcolor=COLORS['grid'], zeroline=False, showticklabels=True)
         fig.update_yaxes(gridcolor=COLORS['grid'], zeroline=False)
+        
+        # Ensure the middle charts have visible timelines for better navigation
+        fig.update_xaxes(showticklabels=True, row=3, col=1)
+        fig.update_xaxes(showticklabels=True, row=4, col=1)
         
         return fig.to_html(full_html=True, include_plotlyjs='cdn')
 
