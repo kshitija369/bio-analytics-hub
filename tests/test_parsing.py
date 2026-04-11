@@ -100,6 +100,35 @@ def test_apple_health_multiple_metrics():
     mindful_entry = next(e for e in standardized if e["metric"] == "mindful_minutes")
     assert mindful_entry["tag"] == "Witnessing"
 
+def test_apple_health_sleep_analysis_transformation():
+    provider = AppleHealthProvider()
+    payload = {
+        "data": {
+            "metrics": [{
+                "name": "sleep_analysis",
+                "data": [{"date": "2026-04-11T00:00:00Z", "qty": 480.0}]
+            }]
+        }
+    }
+    standardized = provider.transform_to_standard(payload)
+    assert len(standardized) == 1
+    assert standardized[0]["metric"] == "sleep_score"
+    assert standardized[0]["val"] == 480.0
+
+def test_apple_health_avg_value_extraction():
+    provider = AppleHealthProvider()
+    payload = {
+        "data": {
+            "metrics": [{
+                "name": "heart_rate",
+                "data": [{"date": "2026-04-11T12:00:00Z", "avg": 75.0}]
+            }]
+        }
+    }
+    standardized = provider.transform_to_standard(payload)
+    assert len(standardized) == 1
+    assert standardized[0]["val"] == 75.0
+
 def test_apple_health_empty_payload():
     provider = AppleHealthProvider()
     assert provider.transform_to_standard({}) == []

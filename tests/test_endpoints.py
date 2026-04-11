@@ -75,18 +75,38 @@ def test_two_tier_persistence_flush():
     assert os.path.exists(PERSISTENT_DB)
 
 def test_sync_with_mock_oura():
+    """
+    Simulates a full Oura sync cycle with all supported endpoints.
+    """
     def mock_requests_get(url, *args, **kwargs):
         mock_resp = MagicMock()
         mock_resp.status_code = 200
         if "heartrate" in url:
             mock_resp.json.return_value = {"data": [{"timestamp": "2026-04-11T10:00:00Z", "bpm": 65}]}
+        elif "sleep" in url and "daily_" not in url:
+            mock_resp.json.return_value = {"data": [{"day": "2026-04-11", "hrv": {"timestamp": "2026-04-11T02:00:00Z", "items": [60]}}]}
         elif "daily_sleep" in url:
             mock_resp.json.return_value = {"data": [{"day": "2026-04-11", "score": 85, "contributors": {}}]}
+        elif "daily_readiness" in url:
+            mock_resp.json.return_value = {"data": [{"day": "2026-04-11", "score": 90, "contributors": {"hrv_balance": 88}}]}
+        elif "daily_activity" in url:
+            mock_resp.json.return_value = {"data": [{"day": "2026-04-11", "steps": 10000}]}
+        elif "daily_stress" in url:
+            mock_resp.json.return_value = {"data": [{"day": "2026-04-11", "stress_high": 30}]}
+        else:
+            mock_resp.json.return_value = {"data": []}
         return mock_resp
 
     with patch("requests.get", side_effect=mock_requests_get):
         response = client.get("/sync")
         assert response.status_code == 200
+        
+        # Verify multiple metrics landed in DB
+        status = client.get("/db-status").json()
+        counts = status["record_counts"]
+        assert "heart_rate" in counts
+        assert "heart_rate_variability" in counts
+        assert "steps" in counts
 
 def test_dashboard_rendering_logic():
     client.post("/webhook/somatic-log", json={
