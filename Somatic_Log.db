@@ -1,3 +1,6 @@
 {"ts": "2026-04-11T01:54:41.263712+00:00", "metric": "mindful_minutes", "val": 1, "unit": "min", "source": "AppleWatch_v9"}
 {"ts": "2026-04-11T01:55:02.506572+00:00", "metric": "mindful_minutes", "val": 1, "unit": "min", "source": "AppleWatch_v9"}
 {"ts": "2026-04-11T10:00:00Z", "metric": "heart_rate", "val": 110.0, "unit": "bpm", "source": "AppleWatch_v9"}
+{"ts": "2026-04-11T10:00:00Z", "metric": "heart_rate", "val": 110.0, "unit": "bpm", "source": "AppleWatch_v9"}
+{"ts": "2026-04-11T10:05:00Z", "metric": "heart_rate_variability", "val": 25.0, "unit": "ms", "source": "AppleWatch_v9"}
+{"ts": "2026-04-11T11:00:00Z", "metric": "heart_rate", "val": 115.0, "unit": "bpm", "source": "AppleWatch_v9"}
