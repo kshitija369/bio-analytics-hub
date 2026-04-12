@@ -25,6 +25,22 @@ graph TD
     end
 ```
 
+## 📊 Visual Gallery
+
+Explore the platform's analytical interfaces. 
+
+### 1. Main Biometric Dashboard
+High-resolution monitoring of Heart Rate, HRV, and State Decryption.
+![Main Dashboard](docs/images/main_dashboard.png)
+
+### 2. Agnostic Biometric Research Hub
+The central registry for managing and tracking physiological research protocols.
+![Research Hub](docs/images/research_hub.png)
+
+### 3. NAR Study Laboratory (EXP-NAR-001)
+Deep-dive inference showing overnight recovery trends vs. morning readiness.
+![NAR Study Result](docs/images/study_detail.png)
+
 ## 🧬 Core Logic: The NAR Study
 
 The flagship **Nocturnal Autonomic Research (NAR)** study (`EXP-NAR-001`) analyzes the relationship between high-resolution nocturnal data and daily readiness.
