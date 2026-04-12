@@ -154,8 +154,12 @@ async def evaluate_experiments(experiment_id: str = "EXP-001", target_date: str 
         base_date = date.today()
         
     results = []
-    # If days_back is provided, evaluate from (base_date - days_back) to base_date
-    for i in range(days_back, -1, -1):
+    # Limit to 14 days per request to prevent timeouts on Cloud Run
+    safe_days = min(days_back, 14)
+    if days_back > 14:
+        print(f"--- [Notice] days_back {days_back} exceeds safety limit. Processing latest 14 days only. ---")
+
+    for i in range(safe_days, -1, -1):
         eval_date = base_date - timedelta(days=i)
         try:
             res = manager.evaluate_experiment_for_date(experiment_id, eval_date)
