@@ -37,8 +37,11 @@ class DimensionRepository:
             return pd.DataFrame()
             
         df = pd.DataFrame(data)
-        # Ensure ts is datetime and set as index
+        # Ensure ts is datetime, convert to naive (ignore TZ) for math consistency
         df['ts'] = pd.to_datetime(df['ts'], format='ISO8601')
+        if pd.api.types.is_datetime64_any_dtype(df['ts']) and df['ts'].dt.tz is not None:
+            df['ts'] = df['ts'].dt.tz_localize(None)
+            
         df = df.set_index('ts').sort_index()
         
         return df

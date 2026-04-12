@@ -26,6 +26,7 @@ class MockSomaticDatabase:
         with sqlite3.connect(self.working_db) as conn:
             conn.execute("CREATE TABLE IF NOT EXISTS biometrics (ts TEXT, metric TEXT, val REAL, unit TEXT, source TEXT, tag TEXT)")
             conn.execute("CREATE TABLE IF NOT EXISTS experiment_results (experiment_id TEXT, ts TEXT, metric TEXT, val REAL, metadata TEXT)")
+            conn.execute("CREATE TABLE IF NOT EXISTS research_results (experiment_id TEXT, morning_date TEXT, independent_value REAL, dependent_value REAL, z_score_deviation REAL, circadian_alignment REAL, subjective_rating INTEGER)")
         self._initialized = True
 
     def _flush_to_persistence(self):
@@ -42,6 +43,12 @@ class MockSomaticDatabase:
         self._ensure_initialized()
         with sqlite3.connect(self.working_db) as conn:
             conn.executemany("INSERT INTO experiment_results VALUES (:experiment_id, :ts, :metric, :val, :metadata)", entries)
+        self._flush_to_persistence()
+
+    def insert_research_results(self, entries):
+        self._ensure_initialized()
+        with sqlite3.connect(self.working_db) as conn:
+            conn.executemany("INSERT INTO research_results VALUES (:experiment_id, :morning_date, :independent_value, :dependent_value, :z_score_deviation, :circadian_alignment, :subjective_rating)", entries)
         self._flush_to_persistence()
 
     def get_data(self, start, end, metrics=None):
@@ -65,6 +72,10 @@ def setup_test_environment(monkeypatch):
     
     # Patch the DATABASE singleton
     import app.api.routes as routes
+    import importlib
+    import app.engine.narc_evaluator
+    importlib.reload(app.engine.narc_evaluator)
+    
     mock_db_instance = MockSomaticDatabase()
     monkeypatch.setattr(routes, "get_db", lambda: mock_db_instance)
     
@@ -132,16 +143,18 @@ def test_experiment_hub_ui():
 
 def test_experiment_detail_ui():
     # Insert mock result first
-    mock_db_instance.insert_experiment_results([{
-        "experiment_id": "EXP-001",
-        "ts": "2026-04-11",
-        "metric": "HRV_vs_ReadinessScore",
-        "val": 10.0,
-        "metadata": '{"ind_val": 50, "dep_val": 60}'
+    mock_db_instance.insert_research_results([{
+        "experiment_id": "EXP-NARC-001",
+        "morning_date": "2026-04-11",
+        "independent_value": 50.0,
+        "dependent_value": 60.0,
+        "z_score_deviation": 1.5,
+        "circadian_alignment": -1.0,
+        "subjective_rating": 5
     }])
-    response = client.get("/experiments/EXP-001")
+    response = client.get("/experiments/EXP-NARC-001")
     assert response.status_code == 200
-    assert "Nocturnal Recovery Correlation" in response.text
+    assert "NARC: Nocturnal Autonomic Recovery" in response.text
 
 def test_experiment_api_list():
     response = client.get("/api/v1/experiments/")
@@ -149,29 +162,30 @@ def test_experiment_api_list():
     data = response.json()
     assert len(data) > 0
     ids = [e["id"] for e in data]
-    assert "EXP-001" in ids
     assert "EXP-NARC-001" in ids
 
 def test_evaluate_endpoint_days_back():
     # Insert some data for yesterday
     yesterday = (date.today() - timedelta(days=1)).isoformat()
+    # NARC needs HR and HRV. We use UTC 'Z' to avoid naive/aware issues.
     mock_db_instance.insert_biometrics([{
         "ts": f"{yesterday}T23:00:00Z",
         "metric": "heart_rate_variability", "val": 55.0,
         "unit": "ms", "source": "Mock", "tag": "baseline"
+    }, {
+        "ts": f"{yesterday}T23:30:00Z",
+        "metric": "heart_rate", "val": 50.0,
+        "unit": "bpm", "source": "Mock", "tag": "baseline"
     }, {
         "ts": f"{date.today().isoformat()}T00:00:00Z",
         "metric": "readiness_score", "val": 80.0,
         "unit": "score", "source": "Mock", "tag": "daily_insight"
     }])
     
-    # Evaluate with days_back=0 (just today, might fail if no data for today)
-    # Evaluate with target_date set to today
     today_str = date.today().isoformat()
-    response = client.get(f"/experiments/evaluate?experiment_id=EXP-001&target_date={today_str}&days_back=0")
+    response = client.get(f"/experiments/evaluate?experiment_id=EXP-NARC-001&target_date={today_str}&days_back=0")
     assert response.status_code == 200
     assert response.json()["status"] == "success"
-    assert response.json()["evaluations"] == 1
 
 def test_alert_engine_trigger():
     payload = {

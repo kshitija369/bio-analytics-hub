@@ -41,10 +41,11 @@ class NARCEvaluator:
         min_hr_val = hr_df.loc[min_hr_ts, 'val']
         
         # Calculate Dip Penalty (hours after 3 AM)
+        # Dimensions from repo are naive datetimes (UTC-based)
         three_am = datetime.combine(morning_date, time(3, 0))
-        # Ensure timezone compatibility (assuming local for this math)
-        dip_delta_hours = (min_hr_ts - three_am).total_seconds() / 3600
+        
         # Positive value = late dip (bad), Negative = early dip (good)
+        dip_delta_hours = (min_hr_ts - three_am).total_seconds() / 3600
         circadian_alignment = dip_delta_hours
 
         # 4. Z-Score Calculation (21-day HRV Baseline)
