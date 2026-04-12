@@ -11,6 +11,8 @@ TEST_DIR = "/tmp/somatic_test"
 WORKING_DB = f"{TEST_DIR}/working.sqlite"
 PERSISTENT_DB = f"{TEST_DIR}/persistent.sqlite"
 
+mock_db_instance = None
+
 class MockSomaticDatabase:
     def __init__(self, db_path=None):
         self.working_db = WORKING_DB
@@ -23,6 +25,7 @@ class MockSomaticDatabase:
         if self._initialized: return
         with sqlite3.connect(self.working_db) as conn:
             conn.execute("CREATE TABLE IF NOT EXISTS biometrics (ts TEXT, metric TEXT, val REAL, unit TEXT, source TEXT, tag TEXT)")
+            conn.execute("CREATE TABLE IF NOT EXISTS experiment_results (experiment_id TEXT, ts TEXT, metric TEXT, val REAL, metadata TEXT)")
         self._initialized = True
 
     def _flush_to_persistence(self):
@@ -35,6 +38,12 @@ class MockSomaticDatabase:
             conn.executemany("INSERT INTO biometrics VALUES (:ts, :metric, :val, :unit, :source, :tag)", entries)
         self._flush_to_persistence()
 
+    def insert_experiment_results(self, entries):
+        self._ensure_initialized()
+        with sqlite3.connect(self.working_db) as conn:
+            conn.executemany("INSERT INTO experiment_results VALUES (:experiment_id, :ts, :metric, :val, :metadata)", entries)
+        self._flush_to_persistence()
+
     def get_data(self, start, end, metrics=None):
         self._ensure_initialized()
         with sqlite3.connect(self.working_db) as conn:
@@ -44,6 +53,7 @@ class MockSomaticDatabase:
 
 @pytest.fixture(autouse=True)
 def setup_test_environment(monkeypatch):
+    global mock_db_instance
     if os.path.exists(TEST_DIR):
         shutil.rmtree(TEST_DIR)
     os.makedirs(TEST_DIR)
@@ -113,6 +123,32 @@ def test_sync_with_mock_oura():
         assert response.status_code == 200
         status = client.get("/db-status").json()
         assert "heart_rate" in status["record_counts"]
+        assert "experiment_counts" in status
+
+def test_experiment_hub_ui():
+    response = client.get("/experiments/")
+    assert response.status_code == 200
+    assert "Witness Research Hub" in response.text
+
+def test_experiment_detail_ui():
+    # Insert mock result first
+    mock_db_instance.insert_experiment_results([{
+        "experiment_id": "EXP-001",
+        "ts": "2026-04-11",
+        "metric": "HRV_vs_ReadinessScore",
+        "val": 10.0,
+        "metadata": '{"ind_val": 50, "dep_val": 60}'
+    }])
+    response = client.get("/experiments/EXP-001")
+    assert response.status_code == 200
+    assert "Nocturnal Recovery Correlation" in response.text
+
+def test_experiment_api_list():
+    response = client.get("/api/v1/experiments/")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) > 0
+    assert data[0]["id"] == "EXP-001"
 
 def test_alert_engine_trigger():
     payload = {

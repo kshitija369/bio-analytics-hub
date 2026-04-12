@@ -19,8 +19,7 @@ async def experiments_hub(request: Request):
     for e in experiments:
         e['metrics'] = _coordinator.get_aggregated_metrics(e['id'])
         
-    return templates.TemplateResponse("main_hub.html", {
-        "request": request, 
+    return templates.TemplateResponse(request, "main_hub.html", {
         "experiments": experiments
     })
 
@@ -34,8 +33,7 @@ async def experiment_detail(request: Request, experiment_id: str):
     metrics = _coordinator.get_aggregated_metrics(experiment_id)
     results = _coordinator.get_experiment_results(experiment_id)
     
-    return templates.TemplateResponse("experiment_detail.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "experiment_detail.html", {
         "protocol": protocol,
         "metrics": metrics,
         "results": results
