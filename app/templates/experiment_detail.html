@@ -24,7 +24,10 @@
                 <h1>{{ protocol.name }}</h1>
                 <p style="color: #888;">{{ protocol.id }} | {{ protocol.hypothesis }}</p>
             </div>
-            <a href="/experiments" style="color: #bb86fc;">&larr; Back to Hub</a>
+            <div>
+                <a href="/experiments/refresh?redirect_to=/experiments/{{ protocol.id }}" class="btn" style="background: #03dac6; margin-right: 15px;">Sync & Refresh</a>
+                <a href="/experiments" style="color: #bb86fc;">&larr; Back to Hub</a>
+            </div>
         </div>
 
         <div class="grid">

@@ -179,6 +179,37 @@ async def evaluate_experiments(experiment_id: str = "EXP-NAR-001", target_date: 
     else:
         return {"status": "no_data", "message": f"No data available for experiment {experiment_id} in the requested window."}
 
+@router.get("/experiments/refresh", tags=["Research Hub"])
+async def refresh_all_experiments(request: Request, redirect_to: str = "/experiments/"):
+    """
+    ### One-Click Refresh
+    1. Triggers a 3-day Oura sync.
+    2. Runs evaluation for the last 3 days.
+    3. Redirects back to the dashboard.
+    """
+    from ..main import run_pipeline
+    from ..engine.experiment_manager import ExperimentManager
+    from datetime import date, timedelta
+    from fastapi.responses import RedirectResponse
+    
+    # 1. Sync
+    try:
+        run_pipeline(hours_back=72)
+    except Exception as e:
+        print(f"Refresh Sync Error: {e}")
+        
+    # 2. Evaluate NAR
+    manager = ExperimentManager()
+    today = date.today()
+    for i in range(3, -1, -1):
+        eval_date = today - timedelta(days=i)
+        try:
+            manager.evaluate_experiment_for_date("EXP-NAR-001", eval_date)
+        except:
+            pass
+            
+    return RedirectResponse(url=redirect_to)
+
 @router.get("/test-oura", tags=["System Diagnostics"])
 async def test_oura_connectivity():
     """
