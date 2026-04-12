@@ -129,6 +129,9 @@ async def db_status():
                 
                 exp_cursor = conn.execute("SELECT experiment_id, count(*) FROM experiment_results GROUP BY experiment_id")
                 status["experiment_counts"] = {row[0]: row[1] for row in exp_cursor.fetchall()}
+                
+                res_cursor = conn.execute("SELECT experiment_id, count(*) FROM research_results GROUP BY experiment_id")
+                status["research_counts"] = {row[0]: row[1] for row in res_cursor.fetchall()}
         except Exception as e:
             status["error"] = str(e)
             
