@@ -170,7 +170,7 @@ class BiometricDashboard:
             if not practice_data.empty and 'heart_rate_variability' in practice_data.columns:
                 fig.add_trace(go.Scatter(
                     x=practice_data.index, y=practice_data['heart_rate_variability'],
-                    name='Witness HRV', line=dict(color=COLORS['practice_hrv'], width=4),
+                    name='Recovery HRV', line=dict(color=COLORS['practice_hrv'], width=4),
                     mode='lines+markers', marker=dict(size=4, color=COLORS['practice_hrv'])
                 ), row=4, col=1)
 
@@ -196,7 +196,7 @@ class BiometricDashboard:
         fig.update_layout(
             template="plotly_dark", paper_bgcolor=COLORS['bg'], plot_bgcolor=COLORS['bg'],
             height=1200, hovermode="x unified",
-            title=dict(text="<b>BIOMETRIC RESEARCH HUB:</b> Comprehensive Witness Map", font=dict(size=24, color=COLORS['text']), x=0.05),
+            title=dict(text="<b>BIOMETRIC RESEARCH HUB:</b> Comprehensive Recovery Map", font=dict(size=24, color=COLORS['text']), x=0.05),
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
             xaxis5=dict(
                 rangeselector=dict(
@@ -230,9 +230,9 @@ class BiometricDashboard:
         print(f"High-contrast analyzer dashboard saved to {output_path}")
 
     @staticmethod
-    def perform_witness_zoom(df: pd.DataFrame, practice_label="Witnessing"):
+    def perform_recovery_zoom(df: pd.DataFrame, practice_label="Recovery"):
         if 'heart_rate_variability' not in df.columns or 'state_label' not in df.columns:
-            return "Insufficient data for Witness Zoom."
+            return "Insufficient data for Recovery Zoom."
         practice_starts = df[df['state_label'] == practice_label].index
         if practice_starts.empty:
             return f"No sessions found for {practice_label}."
@@ -244,4 +244,4 @@ class BiometricDashboard:
         if pd.isna(pre_hrv) or pd.isna(during_hrv):
             return "Missing baseline or practice HRV data for zoom."
         change_pct = ((during_hrv - pre_hrv) / pre_hrv) * 100
-        return f"Witness Zoom Analysis ({practice_label}):\n  Pre-Practice HRV: {pre_hrv:.2f}\n  During-Practice HRV: {during_hrv:.2f}\n  Change: {change_pct:+.2f}%"
+        return f"Recovery Zoom Analysis ({practice_label}):\n  Pre-Practice HRV: {pre_hrv:.2f}\n  During-Practice HRV: {during_hrv:.2f}\n  Change: {change_pct:+.2f}%"

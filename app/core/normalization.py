@@ -89,7 +89,7 @@ class BiometricNormalizer:
     @staticmethod
     def tag_practice_windows(df: pd.DataFrame, practice_sessions: List[tuple]) -> pd.DataFrame:
         """
-        Flags periods of 'Witnessing' or other practices.
+        Flags periods of 'Recovery' or other practices.
         practice_sessions: List of (start_dt, end_dt, label)
         """
         if df.empty:

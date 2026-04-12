@@ -98,7 +98,7 @@ def test_apple_health_multiple_metrics():
     assert len(standardized) == 2
     # Ensure tagging logic for mindfulness
     mindful_entry = next(e for e in standardized if e["metric"] == "mindful_minutes")
-    assert mindful_entry["tag"] == "Witnessing"
+    assert mindful_entry["tag"] == "Recovery"
 
 def test_apple_health_sleep_analysis_transformation():
     provider = AppleHealthProvider()

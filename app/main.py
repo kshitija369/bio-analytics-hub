@@ -83,5 +83,5 @@ if __name__ == "__main__":
     else:
         from datetime import datetime, timedelta, timezone
         now = datetime.now(timezone.utc)
-        example_sessions = [(now - timedelta(hours=2), now - timedelta(hours=1.5), "Witnessing")]
+        example_sessions = [(now - timedelta(hours=2), now - timedelta(hours=1.5), "Recovery")]
         run_pipeline(hours_back=24, practice_sessions=example_sessions)

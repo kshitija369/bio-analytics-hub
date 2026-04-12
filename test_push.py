@@ -17,7 +17,7 @@ def trigger_test_notification():
     data = {
         "token": API_TOKEN,
         "user": USER_KEY,
-        "message": "Witness Test: If you feel this, your Apple Watch is connected! 🧘",
+        "message": "Recovery Test: If you feel this, your Apple Watch is connected! 🧘",
         "title": "Biometric Alert",
         "priority": 1,      # Priority 1 bypasses 'quiet' modes and triggers haptics
         "sound": "calm"     # A subtle sound for mindfulness

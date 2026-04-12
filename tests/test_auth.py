@@ -19,7 +19,7 @@ def test_oura_auth_header_formatting():
     # Should be stripped of whitespace
     assert headers['Authorization'] == "Bearer my_secret_token_123"
     assert headers['Accept'] == "application/json"
-    assert "Witness-State-Monitor" in headers['User-Agent']
+    assert "Bio-Analytics-Monitor" in headers['User-Agent']
 
 def test_oura_empty_token_behavior():
     """

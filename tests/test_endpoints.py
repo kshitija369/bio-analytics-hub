@@ -162,7 +162,7 @@ def test_sync_with_mock_oura():
 def test_experiment_hub_ui():
     response = client.get("/experiments/")
     assert response.status_code == 200
-    assert "Witness Research Hub" in response.text
+    assert "Agnostic Biometric Research Hub" in response.text
 
 def test_experiment_detail_ui():
     # Insert mock result first

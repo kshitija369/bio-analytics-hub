@@ -21,7 +21,7 @@ class OuraProvider(BiometricProvider):
         """Generates fresh headers for each request."""
         return {
             'Authorization': f'Bearer {self.pat}',
-            'User-Agent': 'Witness-State-Monitor/1.0',
+            'User-Agent': 'Bio-Analytics-Monitor/1.0',
             'Accept': 'application/json'
         }
 

@@ -13,8 +13,8 @@ thresholds:
     condition: "gt"
     value: 100
     payload:
-      title: "Witness Prompt"
-      message: "High HR detected ({value} BPM). Center into the Witness state?"
+      title: "Recovery Prompt"
+      message: "High HR detected ({value} BPM). Center into a Peak Recovery state?"
       priority: 1 # High priority (Watch haptic)
       
   - id: "low_recovery"

@@ -10,7 +10,7 @@ db = BiometricDatabase()
 def test_e2e_apple_health_sync():
     print("\n--- Starting E2E Apple Health Sync Test ---")
     
-    # 1. Create a "Witness Signature" Payload
+    # 1. Create a "Recovery Signature" Payload
     # Using a specific timestamp to query later
     test_ts = datetime.now(timezone.utc)
     now_iso = test_ts.isoformat()
@@ -53,8 +53,8 @@ def test_e2e_apple_health_sync():
     data = db.get_data(start, end, metrics=["mindful_minutes"])
     
     assert len(data) > 0
-    # Verify the tag was automatically converted to 'Witnessing' by the provider
-    assert data[0]['tag'] == "Witnessing", f"Expected tag 'Witnessing', got '{data[0]['tag']}'"
+    # Verify the tag was automatically converted to 'Recovery' by the provider
+    assert data[0]['tag'] == "Recovery", f"Expected tag 'Recovery', got '{data[0]['tag']}'"
     
     print("✅ E2E Sync Validated: Data persisted and tagged correctly.")
 
