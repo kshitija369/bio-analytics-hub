@@ -1,4 +1,4 @@
-# Somatic Trigger Configuration
+# Biometric Trigger Configuration
 alerts:
   enabled: true
   provider: "pushover"

@@ -1,22 +1,22 @@
 import unittest
 from datetime import datetime, timedelta, date
-from app.core.database import SomaticDatabase
+from app.core.database import BiometricDatabase
 from app.engine.experiment_manager import ExperimentManager
-from app.engine.dimension_repository import DimensionRepository
+from app.domain.dimension_repository import DimensionRepository
 import os
 import json
 
 class TestExperimentEngine(unittest.TestCase):
     def setUp(self):
         # Use a temporary test database
-        self.test_db_path = "Test_Somatic_Log.sqlite"
-        self.test_working_db = "Test_Somatic_Log_Working.sqlite"
+        self.test_db_path = "Test_Bio_Analytics_Hub.sqlite"
+        self.test_working_db = "Test_Bio_Analytics_Hub_Working.sqlite"
         
         for db in [self.test_db_path, self.test_working_db]:
             if os.path.exists(db):
                 os.remove(db)
             
-        self.db = SomaticDatabase(db_path=self.test_db_path, working_db=self.test_working_db)
+        self.db = BiometricDatabase(db_path=self.test_db_path, working_db=self.test_working_db)
         self.manager = ExperimentManager()
         self.manager.db = self.db
         self.repo = DimensionRepository(db=self.db)
@@ -27,7 +27,7 @@ class TestExperimentEngine(unittest.TestCase):
             if os.path.exists(db):
                 os.remove(db)
 
-    def test_narc_evaluation_with_baseline(self):
+    def test_nar_evaluation_with_baseline(self):
         target_date = date.today()
         
         # 1. Insert 7 days of historical HRV baseline data
@@ -66,8 +66,8 @@ class TestExperimentEngine(unittest.TestCase):
             "unit": "score", "source": "Mock", "tag": "daily_insight"
         }])
 
-        # 4. Run NARC Evaluation
-        result = self.manager.evaluate_experiment_for_date("EXP-NARC-001", target_date)
+        # 4. Run NAR Evaluation
+        result = self.manager.evaluate_experiment_for_date("EXP-NAR-001", target_date)
 
         # 5. Assertions
         self.assertIsNotNone(result)
@@ -81,7 +81,7 @@ class TestExperimentEngine(unittest.TestCase):
         self.db._ensure_initialized()
         import sqlite3
         conn = sqlite3.connect(self.test_working_db)
-        row = conn.execute("SELECT * FROM research_results WHERE experiment_id = ?", ("EXP-NARC-001",)).fetchone()
+        row = conn.execute("SELECT * FROM research_results WHERE experiment_id = ?", ("EXP-NAR-001",)).fetchone()
         self.assertIsNotNone(row)
         self.assertEqual(row[1], target_date.isoformat())
         self.assertEqual(row[3], 95.0) # dependent_value

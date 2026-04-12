@@ -4,7 +4,7 @@ from datetime import datetime
 
 import pytz
 
-class SomaticNormalizer:
+class BiometricNormalizer:
     @staticmethod
     def localize_dataframe(df: pd.DataFrame) -> pd.DataFrame:
         """Detects system timezone and translates UTC indices."""

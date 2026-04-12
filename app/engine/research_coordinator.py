@@ -2,8 +2,8 @@ import json
 import pandas as pd
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta, date
-from .dimension_repository import DimensionRepository
-from app.core.database import SomaticDatabase
+from app.domain.dimension_repository import DimensionRepository
+from app.core.database import BiometricDatabase
 
 class ResearchCoordinator:
     """
@@ -12,7 +12,7 @@ class ResearchCoordinator:
     """
     def __init__(self):
         self.repo = DimensionRepository()
-        self.db = SomaticDatabase()
+        self.db = BiometricDatabase()
 
     def get_experiment_results(self, experiment_id: str, start_date: date = None, end_date: date = None) -> List[Dict[str, Any]]:
         """
@@ -26,14 +26,14 @@ class ResearchCoordinator:
             params = [experiment_id]
             date_filter = ""
             if start_date:
-                date_filter += " AND morning_date >= ?" if experiment_id == "EXP-NARC-001" else " AND ts >= ?"
+                date_filter += " AND morning_date >= ?" if experiment_id == "EXP-NAR-001" else " AND ts >= ?"
                 params.append(start_date.isoformat())
             if end_date:
-                date_filter += " AND morning_date <= ?" if experiment_id == "EXP-NARC-001" else " AND ts <= ?"
+                date_filter += " AND morning_date <= ?" if experiment_id == "EXP-NAR-001" else " AND ts <= ?"
                 params.append(end_date.isoformat())
 
-            if experiment_id == "EXP-NARC-001":
-                query = f"SELECT morning_date as ts, 'NARC_Score' as metric, independent_value as val, morning_date, independent_value as ind_val, dependent_value as dep_val, z_score_deviation, circadian_alignment FROM research_results WHERE experiment_id = ? {date_filter} ORDER BY morning_date DESC"
+            if experiment_id == "EXP-NAR-001":
+                query = f"SELECT morning_date as ts, 'NAR_Score' as metric, independent_value as val, morning_date, independent_value as ind_val, dependent_value as dep_val, z_score_deviation, circadian_alignment FROM research_results WHERE experiment_id = ? {date_filter} ORDER BY morning_date DESC"
                 rows = conn.execute(query, params).fetchall()
                 results = []
                 for row in rows:

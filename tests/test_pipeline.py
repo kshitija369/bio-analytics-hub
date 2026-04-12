@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 from app.main import app
-from app.core.database import SomaticDatabase
+from app.core.database import BiometricDatabase
 import pandas as pd
 from datetime import datetime, timezone
 
@@ -9,7 +9,7 @@ client = TestClient(app)
 
 # 1. Integration Test: Webhook Ingestion (Apple Health)
 def test_apple_health_webhook_ingestion():
-    db = SomaticDatabase()
+    db = BiometricDatabase()
     test_payload = {
         "data": {
             "metrics": [{
@@ -19,7 +19,7 @@ def test_apple_health_webhook_ingestion():
             }]
         }
     }
-    response = client.post("/webhook/somatic-log", json=test_payload)
+    response = client.post("/webhook/biometric-log", json=test_payload)
     
     assert response.status_code == 200
     assert response.json()["processed_data_points"] == 1
@@ -35,15 +35,15 @@ def test_apple_health_webhook_ingestion():
 
 # 2. Unit Test: Normalization & Interpolation Logic
 def test_normalization_interpolation():
-    from app.core.normalization import SomaticNormalizer
+    from app.core.normalization import BiometricNormalizer
     
     # Mock data with a 5 min gap
     raw_data = [
-        {"ts": "2026-04-10T10:00:00Z", "metric": "heart_rate", "val": 60.0},
-        {"ts": "2026-04-10T10:05:00Z", "metric": "heart_rate", "val": 70.0}
+        {"ts": "2026-04-10T10:00:00Z", "metric": "heart_rate", "val": 60.0, "source": "MockWatch", "tag": "test"},
+        {"ts": "2026-04-10T10:05:00Z", "metric": "heart_rate", "val": 70.0, "source": "MockWatch", "tag": "test"}
     ]
     
-    df = SomaticNormalizer.normalize_to_timeseries(raw_data, resample_rate='1min')
+    df = BiometricNormalizer.normalize_to_timeseries(raw_data, resample_rate='1min')
     
     # Check if we have 6 minutes (0, 1, 2, 3, 4, 5)
     assert len(df) == 6

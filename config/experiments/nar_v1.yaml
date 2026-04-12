@@ -1,5 +1,5 @@
-id: "EXP-NARC-001"
-name: "NARC: Nocturnal Autonomic Recovery"
+id: "EXP-NAR-001"
+name: "NAR: Nocturnal Autonomic Recovery"
 hypothesis: "Agnostic Z-Score HRV deviations and circadian dip alignment correlate with daily readiness."
 independent_variables:
   - dimension: "HRV"

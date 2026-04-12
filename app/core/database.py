@@ -4,9 +4,9 @@ import shutil
 from datetime import datetime
 from typing import List, Dict, Any
 
-DB_FILE = "Somatic_Log.sqlite" # Local fallback
+DB_FILE = "Bio_Analytics_Hub.sqlite" # Local fallback
 
-class SomaticDatabase:
+class BiometricDatabase:
     def __init__(self, db_path=None, working_db=None):
         self._db_path_override = db_path
         self._working_db_override = working_db
@@ -15,8 +15,8 @@ class SomaticDatabase:
         # Two-Tier Strategy:
         # 1. working_db: Local /tmp file for high-speed, no-lock R/W
         # 2. persistent_db: The FUSE mount at /app/data for backup
-        self.working_db = working_db or "/tmp/Somatic_Log_Working.sqlite"
-        self.persistent_db = "/app/data/Somatic_Log.sqlite"
+        self.working_db = working_db or "/tmp/Bio_Analytics_Hub_Working.sqlite"
+        self.persistent_db = "/app/data/Bio_Analytics_Hub.sqlite"
 
     def _ensure_initialized(self):
         if self._initialized:

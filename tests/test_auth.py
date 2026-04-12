@@ -2,7 +2,7 @@ import pytest
 import os
 import requests
 from unittest.mock import patch, MagicMock
-from app.providers.oura import OuraProvider
+from app.adapters.oura import OuraProvider
 from datetime import datetime
 
 # --- [AUTHENTICATION UNIT TESTS] ---

@@ -2,14 +2,15 @@ from fastapi import FastAPI
 import os
 
 app = FastAPI(
-    title="Witness State Monitoring API",
+    title="Agnostic Biometric Research Platform",
     description="""
-    A somatic research platform for tracking the physiological reality of non-dual awareness.
-    
+    A universal biometric research platform for analyzing physiological data,
+    Nocturnal Autonomic Research (NAR), and Longevity Frameworks.
+
     ### Key Features:
     * **Research Engine**: Agnostic biometric dimensions (HRV, HeartRate) vs. Daily Aggregates.
-    * **NARC Study**: Nocturnal Autonomic Recovery & Readiness Correlation with Z-Score normalization.
-    * **Real-time Triggers**: Haptic prompts for high HR and low recovery states.
+    * **NAR Study**: Nocturnal Autonomic Research & Readiness Correlation with Z-Score normalization.
+    * **Real-time Triggers**: Physiological prompts for high HR and low recovery states.
     * **Agnostic Ingestion**: Support for Oura V2 and Apple Health (Auto-Export).
     """,
     version="1.1.0",
@@ -20,7 +21,7 @@ app = FastAPI(
 # Simple health endpoints
 @app.get("/")
 async def root():
-    return {"status": "alive", "message": "Witness State Monitoring API"}
+    return {"status": "alive", "message": "Peak Autonomic Recovery Monitoring API"}
 
 @app.get("/health")
 async def health():
@@ -40,17 +41,17 @@ except Exception as e:
 
 def run_pipeline(hours_back=168, practice_sessions=None):
     """Pipeline logic (only runs in CLI mode)"""
-    from app.providers.oura import OuraProvider
-    from app.core.database import SomaticDatabase
-    from app.core.normalization import SomaticNormalizer
-    from app.visualization.dashboard import SomaticDashboard
-    from app.core.alerts import SomaticTriggerEngine
+    from app.adapters.oura import OuraProvider
+    from app.core.database import BiometricDatabase
+    from app.core.normalization import BiometricNormalizer
+    from app.visualization.dashboard import BiometricDashboard
+    from app.core.alerts import BiometricTriggerEngine
     from datetime import datetime, timedelta, timezone
 
-    print(f"\n--- Running Witness State Data Pipeline (Last {hours_back} hours) ---")
-    db = SomaticDatabase()
+    print(f"\n--- Running Peak Autonomic Recovery Data Pipeline (Last {hours_back} hours) ---")
+    db = BiometricDatabase()
     oura = OuraProvider()
-    trigger_engine = SomaticTriggerEngine()
+    trigger_engine = BiometricTriggerEngine()
     
     now = datetime.now(timezone.utc)
     start = now - timedelta(hours=hours_back)
@@ -65,10 +66,10 @@ def run_pipeline(hours_back=168, practice_sessions=None):
 
     unified_raw = db.get_data(start, now)
     if unified_raw:
-        df_normalized = SomaticNormalizer().normalize_to_timeseries(unified_raw)
+        df_normalized = BiometricNormalizer().normalize_to_timeseries(unified_raw)
         if practice_sessions:
-            df_normalized = SomaticNormalizer().tag_practice_windows(df_normalized, practice_sessions)
-        SomaticDashboard.generate(df_normalized)
+            df_normalized = BiometricNormalizer().tag_practice_windows(df_normalized, practice_sessions)
+        BiometricDashboard.generate(df_normalized)
 
 if __name__ == "__main__":
     import sys

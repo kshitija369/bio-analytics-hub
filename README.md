@@ -1,74 +1,51 @@
-# Witness State Monitoring
+# Agnostic Biometric Research Platform
 
-A robust, cloud-native somatic research platform for monitoring the physiological signatures of non-dual awareness (the "Witness State"). This system unifies high-resolution data from **Oura** and **Apple Watch** into a single, high-contrast dashboard with real-time biometric alerting.
+Welcome to the **Agnostic Biometric Research Platform**, a robust, provider-independent system designed to conduct rigorous physiological research based on established longevity frameworks.
 
-## 🚀 Key Features
-- **Modular Data Pipeline:** Uses the Provider Pattern to cleanly integrate disparate biometric sources.
-- **High-Contrast Analyzer:** A dark-mode Plotly dashboard designed for intuitive "State Decryption" (Heart Rate vs. HRV).
-- **Somatic Rules Engine:** Real-time alerting via **Pushover** that taps your Apple Watch during stress spikes or recovery dips.
-- **Cloud Persistence:** Deployed on **Google Cloud Run** with a "Two-Tier" SQLite strategy for persistent, zero-lock storage on GCS.
-- **Automated Sync:** Hourly background pulls from Oura via **Cloud Scheduler**.
+By moving beyond simple data collection to **Inference-Driven Research**, this system anchors itself in the methodologies of Attia, Walker, and Panda, helping to quantify the physiological realities of autonomic recovery.
 
----
+## 🧬 Core Architecture: The Modular Data Pipeline
 
-## 🛠️ System Architecture
-- **`app/providers/`**: Data ingestion logic for Oura (API) and Apple Health (Webhook).
-- **`app/core/`**: The "Brain" – handles 1-minute normalization, localized time-alignment (PDT), and the Rules Engine.
-- **`app/api/`**: FastAPI endpoints for real-time webhooks, automated syncs, and serving the live dashboard.
-- **`config/triggers.yaml`**: Configurable biometric thresholds for your haptic alerts.
+1. **Clean Provider Adapters (`app/adapters/`):** All biometric sources (Oura, Apple Health) are strictly encapsulated as adapters. The system is provider-agnostic.
+2. **Universal Dimensions (`app/domain/`):** Raw data is mapped into universal dimensions (e.g., `Dimension.HRV`, `Dimension.HeartRate`) ensuring experiments run flawlessly regardless of the hardware used.
+3. **Inference Engine (`app/engine/`):** Orchestrates the research. Calculates Z-Score Normalization and evaluates statistical significance (e.g., Pearson Correlation) to translate passive tracking into active feedback.
 
----
+## 🔬 The NAR Study (Nocturnal Autonomic Research)
 
-## 🚦 Setup & Deployment
+The flagship study of this platform is **NAR** (`EXP-NARC-001`). It analyzes how high-resolution nocturnal autonomic behaviors correlate with daily aggregate readiness.
 
-### 1. Environment Secrets
-Add the following to your GitHub Secrets or `.env` file:
-- `OURA_PAT`: Your Oura Personal Access Token.
-- `PUSHOVER_USER_KEY`: Your Pushover User Key.
-- `PUSHOVER_API_TOKEN`: Your Pushover Application Token.
-- `GCS_BUCKET_NAME`: The GCP bucket for persistent data.
-- `GCP_SA_KEY`: Service Account JSON for deployment.
+### Key Metrics Tracked
+* **Z-Score Normalization**: Focuses on deviations from your personal 21-day baseline ($Z = \frac{x - \mu}{\sigma}$).
+* **Circadian Dip Alignment**: Identifies the timing of `min(heart_rate)`. Dips occurring after 03:00 AM indicate autonomic misalignment (e.g., sympathetic arousal, late-night digestion) and apply a penalty to the correlation.
 
-### 2. Apple Watch Integration
-1. Install **Health Auto Export** on your iPhone.
-2. Set the REST API URL to: `https://[YOUR-CLOUD-URL]/webhook/somatic-log`
-3. Any "Mindful Minutes" session on your Watch is automatically tagged as **"Witnessing"** on the dashboard.
+## 🛠 System Operations & Hydration
 
-### 3. Automated Heartbeat
-Set up the hourly Oura pull using the GCloud CLI:
+To support longitudinal longevity trends (e.g., viewing 90-day RHR hammock curves), the system utilizes a two-tier **Hydration & Sync Strategy**.
+
+### The Quarter Bulk Read
+For a new installation, you must hydrate the system's `Bio_Analytics_Hub` with historical data to establish your Z-Score baselines.
 ```bash
-gcloud scheduler jobs create http hourly-oura-sync \
-    --schedule="0 * * * *" \
-    --uri="https://[YOUR-CLOUD-URL]/sync" \
-    --http-method=GET \
-    --location=us-central1
+# Run the bulk loader to pull the last 90 days from Oura
+export OURA_PAT="your_personal_access_token"
+export PYTHONPATH=$PYTHONPATH:.
+python3 scripts/bulk_load_oura.py 90
 ```
 
----
+### The Delta Sync
+The system handles incremental updates via Cloud Scheduler hitting the `/sync` API or through Webhooks from Apple Health (`/webhook/biometric-log`), seamlessly merging high-res intra-day data with daily aggregates.
 
-## 📊 Usage & Visualization
+## 📚 Interactive Laboratory (API & Documentation)
 
-### View the Dashboard
-Visit: **`https://[YOUR-CLOUD-URL]/dashboard`**
-- **Row 1 (Master Key):** Purple blocks indicate active practice sessions.
-- **Row 2 (Somatic Flow):** Heart rate (BPM). Turns vibrant purple during "Witnessing."
-- **Row 3 (Recovery Density):** HRV (SDNN). Turns vibrant green during "Witnessing."
+The entire platform is documented as an Interactive Laboratory via built-in OpenAPI specifications. 
+* **Swagger UI**: `/docs` (Test endpoints interactively)
+* **Redoc**: `/redoc` (Deep reading)
 
-### System Status
-Check the database integrity and record counts at:
-`https://[YOUR-CLOUD-URL]/db-status`
-
-### Manual Sync
-Force an immediate Oura data pull:
-`https://[YOUR-CLOUD-URL]/sync`
+Endpoints are organized into logical categories:
+* **Data Ingestion**: Syncs and Webhooks.
+* **Research API**: Dynamic endpoints for fetching correlation statistics and raw time-series data with dynamic zooming (`start_date` / `end_date`).
+* **Somatic Dashboard**: High-contrast visual analytics.
+* **System Diagnostics**: Database health and API connectivity checks.
 
 ---
 
-## 🧪 Testing & Debugging
-The repository includes a suite of verification tools:
-- `python3 test_push.py`: Tests the haptic tap on your Apple Watch.
-- `python3 -m pytest tests/test_endpoints.py`: Validates all API routes and DB logic.
-- `python3 tests/debug_stack.py`: Performs a deep check of credentials and engine logic.
-
-## 📜 License
-MIT
+*Designed for precise measurement of Peak Autonomic Recovery and Performance States.*

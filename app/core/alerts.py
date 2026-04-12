@@ -4,7 +4,7 @@ import os
 from datetime import datetime, timedelta
 from .notifiers import send_to_watch
 
-class SomaticTriggerEngine:
+class BiometricTriggerEngine:
     _last_alerts = {}
 
     def __init__(self, config_path="config/triggers.yaml"):

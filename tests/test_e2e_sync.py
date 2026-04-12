@@ -1,11 +1,11 @@
 import pytest
 from fastapi.testclient import TestClient
 from app.main import app
-from app.core.database import SomaticDatabase
+from app.core.database import BiometricDatabase
 from datetime import datetime, timezone, timedelta
 
 client = TestClient(app)
-db = SomaticDatabase()
+db = BiometricDatabase()
 
 def test_e2e_apple_health_sync():
     print("\n--- Starting E2E Apple Health Sync Test ---")
@@ -39,7 +39,7 @@ def test_e2e_apple_health_sync():
 
     # 2. Simulate the Webhook Post
     print(f"Sending mock payload for timestamp: {now_iso}")
-    response = client.post("/webhook/somatic-log", json=test_payload)
+    response = client.post("/webhook/biometric-log", json=test_payload)
     
     # 3. Assertions on Response
     assert response.status_code == 200

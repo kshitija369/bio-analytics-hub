@@ -1,4 +1,4 @@
-# Witness State Monitoring: System Mandates
+# Peak Autonomic Recovery Monitoring: System Mandates
 
 Always refer to this file before writing code. It contains the project's foundational architecture, hard-won lessons from authentication/parsing bugs, and deployment constraints.
 
@@ -20,8 +20,8 @@ Always refer to this file before writing code. It contains the project's foundat
 
 ## 💾 Persistence & Cloud Strategy (GCP)
 - **Two-Tier DB Strategy:** 
-    1. **Working Tier:** R/W to a local SQLite file in `/tmp/Somatic_Log_Working.sqlite` for speed and to avoid FUSE locking hangs.
-    2. **Persistent Tier:** Periodically `shutil.copy2` the working DB to the persistent mount at `/app/data/Somatic_Log.sqlite`.
+    1. **Working Tier:** R/W to a local SQLite file in `/tmp/Bio_Analytics_Hub_Working.sqlite` for speed and to avoid FUSE locking hangs.
+    2. **Persistent Tier:** Periodically `shutil.copy2` the working DB to the persistent mount at `/app/data/Bio_Analytics_Hub.sqlite`.
 - **FUSE Safety:** Never allow SQLite to open a journal or lock file directly on the GCS FUSE mount. It will cause indefinite hangs and "database is locked" errors.
 - **Timezone Fallback:** Use `pytz` for container stability. Hardcode `America/Los_Angeles` as the primary zone, but ALWAYS provide a fallback to `UTC` to prevent startup crashes.
 

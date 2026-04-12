@@ -1,6 +1,6 @@
 import pytest
-from app.providers.oura import OuraProvider
-from app.providers.apple_health import AppleHealthProvider
+from app.adapters.oura import OuraProvider
+from app.adapters.apple_health import AppleHealthProvider
 from datetime import datetime
 
 # --- [OURA PARSING TESTS] ---

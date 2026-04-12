@@ -4,8 +4,8 @@ import json
 import pandas as pd
 from datetime import datetime, timedelta, date
 from typing import List, Dict, Any, Optional
-from .dimension_repository import DimensionRepository
-from app.core.database import SomaticDatabase
+from app.domain.dimension_repository import DimensionRepository
+from app.core.database import BiometricDatabase
 
 class ExperimentManager:
     """
@@ -15,7 +15,7 @@ class ExperimentManager:
     def __init__(self, config_path="config/experiments"):
         self.config_path = config_path
         self.repo = DimensionRepository()
-        self.db = SomaticDatabase()
+        self.db = BiometricDatabase()
 
     def load_protocol(self, experiment_id: str) -> Dict[str, Any]:
         """Loads a YAML experiment protocol by ID."""
@@ -42,9 +42,9 @@ class ExperimentManager:
             return None
         
         # Dispatch based on experiment type or ID
-        if experiment_id == "EXP-NARC-001":
-            from .narc_evaluator import NARCEvaluator
-            evaluator = NARCEvaluator(db=self.db)
+        if experiment_id == "EXP-NAR-001":
+            from .nar_evaluator import NAREvaluator
+            evaluator = NAREvaluator(db=self.db)
             return evaluator.evaluate(target_date)
         else:
             print(f"--- [ExperimentManager] Unsupported experiment: {experiment_id} ---")

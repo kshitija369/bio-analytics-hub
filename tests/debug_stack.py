@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 # Ensure app is in path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from app.core.alerts import SomaticTriggerEngine
+from app.core.alerts import BiometricTriggerEngine
 from app.core.notifiers import send_to_watch
 
 def debug_full_stack():
@@ -36,13 +36,13 @@ def debug_full_stack():
         print("FAILED: API call failed. Check credentials above.")
 
     print("\n--- 3. Testing Engine Logic (Stress Spike) ---")
-    engine = SomaticTriggerEngine()
+    engine = BiometricTriggerEngine()
     print("Sending 110 BPM (Threshold is 100)...")
     # This should trigger the 'stress_spike' rule if not in cooldown
     engine.evaluate("heart_rate", 110)
     
     print("\n--- 4. Checking Cooldowns ---")
-    print(f"Active Cooldowns: {SomaticTriggerEngine._last_alerts.keys()}")
+    print(f"Active Cooldowns: {BiometricTriggerEngine._last_alerts.keys()}")
 
 if __name__ == "__main__":
     debug_full_stack()

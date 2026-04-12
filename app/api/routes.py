@@ -10,18 +10,18 @@ _trigger_engine = None
 def get_db():
     global _db
     if _db is None:
-        from ..core.database import SomaticDatabase
-        _db = SomaticDatabase()
+        from ..core.database import BiometricDatabase
+        _db = BiometricDatabase()
     return _db
 
 def get_trigger_engine():
     global _trigger_engine
     if _trigger_engine is None:
-        from ..core.alerts import SomaticTriggerEngine
-        _trigger_engine = SomaticTriggerEngine()
+        from ..core.alerts import BiometricTriggerEngine
+        _trigger_engine = BiometricTriggerEngine()
     return _trigger_engine
 
-@router.post("/webhook/somatic-log", tags=["Data Ingestion"])
+@router.post("/webhook/biometric-log", tags=["Ingestion"])
 async def receive_apple_health_data(request: Request):
     """
     ### Apple Health Webhook (Auto-Export)
@@ -30,8 +30,7 @@ async def receive_apple_health_data(request: Request):
     - **Triggers**: Real-time haptic prompts if thresholds are exceeded.
     """
     # Imports inside to ensure fast startup
-    from ..providers.apple_health import AppleHealthProvider
-    
+    from ..adapters.apple_health import AppleHealthProvider
     db = get_db()
     trigger_engine = get_trigger_engine()
     provider = AppleHealthProvider()
@@ -62,15 +61,15 @@ async def receive_apple_health_data(request: Request):
 async def health_check():
     return {"status": "alive"}
 
-@router.get("/dashboard", tags=["Somatic Dashboard"])
+@router.get("/dashboard", tags=["Research"])
 async def get_dashboard():
     """
-    ### High-Contrast Somatic Dashboard
+    ### High-Contrast Biometric Dashboard
     Serves the primary unified dashboard showing Heart Rate, HRV, and State Decryption.
     """
     from fastapi.responses import HTMLResponse
-    from ..core.normalization import SomaticNormalizer
-    from ..visualization.dashboard import SomaticDashboard
+    from ..core.normalization import BiometricNormalizer
+    from ..visualization.dashboard import BiometricDashboard
     from datetime import datetime, timedelta, timezone
     
     db = get_db()
@@ -84,14 +83,14 @@ async def get_dashboard():
         return HTMLResponse("<html><body><h1>No data found in database for the last 7 days.</h1></body></html>")
     
     # 2. Normalize
-    normalizer = SomaticNormalizer()
+    normalizer = BiometricNormalizer()
     df_normalized = normalizer.normalize_to_timeseries(unified_raw)
     
     # 3. Return HTML
-    html_content = SomaticDashboard.get_html(df_normalized)
+    html_content = BiometricDashboard.get_html(df_normalized)
     return HTMLResponse(content=html_content, status_code=200)
 
-@router.get("/sync", tags=["Data Ingestion"])
+@router.get("/sync", tags=["Ingestion"])
 async def trigger_sync(days: int = 7):
     """
     ### Oura V2 Sync
@@ -107,7 +106,7 @@ async def trigger_sync(days: int = 7):
         print(f"Sync error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/db-status", tags=["System Diagnostics"])
+@router.get("/db-status", tags=["Diagnostics"])
 async def db_status():
     """
     ### Database Integrity Check
@@ -144,7 +143,7 @@ async def db_status():
     return status
 
 @router.get("/experiments/evaluate", tags=["Research API"])
-async def evaluate_experiments(experiment_id: str = "EXP-NARC-001", target_date: str = None, days_back: int = 0):
+async def evaluate_experiments(experiment_id: str = "EXP-NAR-001", target_date: str = None, days_back: int = 0):
     """
     ### Trigger Study Evaluation
     Runs the inference logic (e.g., Z-Score, Dip Calculation) for a specific study.

@@ -1,13 +1,13 @@
 import os
 import sys
 from datetime import datetime, timedelta, timezone
-from app.providers.oura import OuraProvider
-from app.core.database import SomaticDatabase
+from app.adapters.oura import OuraProvider
+from app.core.database import BiometricDatabase
 
 def bulk_load(days_back=90):
     print(f"--- Starting Bulk Hydration: Last {days_back} days ---")
     
-    db = SomaticDatabase()
+    db = BiometricDatabase()
     oura = OuraProvider()
     
     now = datetime.now(timezone.utc)
@@ -28,7 +28,7 @@ def bulk_load(days_back=90):
     
     if standardized:
         db.insert_biometrics(standardized)
-        print("Successfully persisted historical data to Somatic Log.")
+        print("Successfully persisted historical data to Biometric Log.")
     
     print("--- Hydration Complete ---")
 

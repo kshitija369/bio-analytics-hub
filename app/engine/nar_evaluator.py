@@ -3,25 +3,25 @@ import numpy as np
 import sqlite3
 from datetime import datetime, timedelta, date, time
 from typing import Optional, Dict, Any
-from .dimension_repository import DimensionRepository
-from app.core.database import SomaticDatabase
+from app.domain.dimension_repository import DimensionRepository
+from app.core.database import BiometricDatabase
 
-class NARCEvaluator:
+class NAREvaluator:
     """
-    NARC: Nocturnal Autonomic Recovery & Readiness Correlation.
+    NAR: Nocturnal Autonomic Recovery & Readiness Correlation.
     Implements Z-Score Normalization and Circadian Dip calculation.
     """
-    EXPERIMENT_ID = "EXP-NARC-001"
+    EXPERIMENT_ID = "EXP-NAR-001"
 
-    def __init__(self, db: Optional[SomaticDatabase] = None):
-        self.db = db or SomaticDatabase()
+    def __init__(self, db: Optional[BiometricDatabase] = None):
+        self.db = db or BiometricDatabase()
         self.repo = DimensionRepository(db=self.db)
 
     def evaluate(self, morning_date: date) -> Dict[str, Any]:
         """
-        Main entry point for NARC daily evaluation.
+        Main entry point for NAR daily evaluation.
         """
-        print(f"--- [NARC] Running Evaluation for {morning_date} ---")
+        print(f"--- [NAR] Running Evaluation for {morning_date} ---")
         
         # 1. Window: 22:30 (yesterday) to 07:30 (today)
         night_start = datetime.combine(morning_date - timedelta(days=1), time(22, 30))
@@ -33,7 +33,7 @@ class NARCEvaluator:
         readiness = self.repo.get_daily_aggregate("ReadinessScore", morning_date)
 
         if hrv_df.empty or hr_df.empty or readiness is None:
-            print(f"  [NARC] Missing core dimensions for {morning_date}")
+            print(f"  [NAR] Missing core dimensions for {morning_date}")
             return {"status": "missing_data"}
 
         # 3. Dip Calculator: min(heart_rate)

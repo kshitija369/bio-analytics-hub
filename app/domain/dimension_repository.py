@@ -1,7 +1,7 @@
 import pandas as pd
 from typing import List, Dict, Any, Optional
 from datetime import datetime, date
-from app.core.database import SomaticDatabase
+from app.core.database import BiometricDatabase
 
 class DimensionRepository:
     """
@@ -19,8 +19,8 @@ class DimensionRepository:
         "MindfulMinutes": ["mindful_minutes"]
     }
 
-    def __init__(self, db: Optional[SomaticDatabase] = None):
-        self.db = db or SomaticDatabase()
+    def __init__(self, db: Optional[BiometricDatabase] = None):
+        self.db = db or BiometricDatabase()
 
     def get_dimension_data(self, dimension_type: str, start: datetime, end: datetime) -> pd.DataFrame:
         """

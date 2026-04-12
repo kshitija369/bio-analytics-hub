@@ -1,4 +1,4 @@
-from app.core.alerts import SomaticTriggerEngine
+from app.core.alerts import BiometricTriggerEngine
 from unittest.mock import patch
 import os
 
@@ -6,8 +6,8 @@ import os
 config_path = "config/triggers.yaml"
 
 def simulate():
-    print("--- Starting Somatic Alert Logic Simulation ---")
-    engine = SomaticTriggerEngine(config_path)
+    print("--- Starting Biometric Alert Logic Simulation ---")
+    engine = BiometricTriggerEngine(config_path)
     
     # We will mock 'send_to_watch' to see if it would have triggered
     with patch('app.core.alerts.send_to_watch', return_value=True) as mock_send:

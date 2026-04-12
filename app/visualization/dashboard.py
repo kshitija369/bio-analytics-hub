@@ -2,9 +2,9 @@ from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 import pandas as pd
 from datetime import timedelta
-from app.core.normalization import SomaticNormalizer
+from app.core.normalization import BiometricNormalizer
 
-class SomaticDashboard:
+class BiometricDashboard:
     @staticmethod
     def _get_session_spans(df):
         """Helper to find continuous blocks of 'Witnessing'"""
@@ -26,10 +26,10 @@ class SomaticDashboard:
             return "<html><body><h1>No data available for dashboard.</h1></body></html>"
 
         # 1. Apply Localization
-        df = SomaticNormalizer.localize_dataframe(df)
+        df = BiometricNormalizer.localize_dataframe(df)
         local_tz_short = df.index.strftime('%Z')[0] if not df.empty else "Local"
 
-        # 2. High-Contrast Cyber-Somatic Palette
+        # 2. High-Contrast Cyber-Biometric Palette
         COLORS = {
             'hr_baseline': 'rgba(231, 76, 60, 0.4)',  # Faded Red
             'hrv_baseline': 'rgba(189, 195, 199, 0.5)', # Gray
@@ -68,7 +68,7 @@ class SomaticDashboard:
             rows=5, cols=1, 
             shared_xaxes=True, 
             vertical_spacing=0.03,
-            subplot_titles=("(1) Daily Research Metrics", "(2) Master Practice Key", "(3) Somatic Flow (BPM)", "(4) Recovery Density (HRV)", "(5) Daily Bio-Load (Scores)"),
+            subplot_titles=("(1) Daily Research Metrics", "(2) Master Practice Key", "(3) Biometric Flow (BPM)", "(4) Recovery Density (HRV)", "(5) Daily Bio-Load (Scores)"),
             row_heights=[0.15, 0.05, 0.25, 0.25, 0.3],
             specs=[[{"type": "table"}], [{"type": "scatter"}], [{"type": "scatter"}], [{"type": "scatter"}], [{"type": "scatter"}]]
         )
@@ -196,7 +196,7 @@ class SomaticDashboard:
         fig.update_layout(
             template="plotly_dark", paper_bgcolor=COLORS['bg'], plot_bgcolor=COLORS['bg'],
             height=1200, hovermode="x unified",
-            title=dict(text="<b>SOMATIC RESEARCH HUB:</b> Comprehensive Witness Map", font=dict(size=24, color=COLORS['text']), x=0.05),
+            title=dict(text="<b>BIOMETRIC RESEARCH HUB:</b> Comprehensive Witness Map", font=dict(size=24, color=COLORS['text']), x=0.05),
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
             xaxis5=dict(
                 rangeselector=dict(
@@ -223,8 +223,8 @@ class SomaticDashboard:
         return fig.to_html(full_html=True, include_plotlyjs='cdn')
 
     @staticmethod
-    def generate(df: pd.DataFrame, output_path="unified_somatic_dashboard.html"):
-        html_content = SomaticDashboard.get_html(df)
+    def generate(df: pd.DataFrame, output_path="unified_biometric_dashboard.html"):
+        html_content = BiometricDashboard.get_html(df)
         with open(output_path, "w") as f:
             f.write(html_content)
         print(f"High-contrast analyzer dashboard saved to {output_path}")
