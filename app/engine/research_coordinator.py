@@ -14,23 +14,30 @@ class ResearchCoordinator:
         self.repo = DimensionRepository()
         self.db = SomaticDatabase()
 
-    def get_experiment_results(self, experiment_id: str) -> List[Dict[str, Any]]:
+    def get_experiment_results(self, experiment_id: str, start_date: date = None, end_date: date = None) -> List[Dict[str, Any]]:
         """
-        Fetches all recorded results for a specific experiment from 
-        the experiment_results or research_results table.
+        Fetches recorded results for a specific experiment, optionally filtered by date.
         """
         self.db._ensure_initialized()
         import sqlite3
         with sqlite3.connect(self.db.working_db) as conn:
             conn.row_factory = sqlite3.Row
             
+            params = [experiment_id]
+            date_filter = ""
+            if start_date:
+                date_filter += " AND morning_date >= ?" if experiment_id == "EXP-NARC-001" else " AND ts >= ?"
+                params.append(start_date.isoformat())
+            if end_date:
+                date_filter += " AND morning_date <= ?" if experiment_id == "EXP-NARC-001" else " AND ts <= ?"
+                params.append(end_date.isoformat())
+
             if experiment_id == "EXP-NARC-001":
-                query = "SELECT morning_date as ts, 'NARC_Score' as metric, independent_value as val, morning_date, independent_value as ind_val, dependent_value as dep_val, z_score_deviation, circadian_alignment FROM research_results WHERE experiment_id = ? ORDER BY morning_date DESC"
-                rows = conn.execute(query, (experiment_id,)).fetchall()
+                query = f"SELECT morning_date as ts, 'NARC_Score' as metric, independent_value as val, morning_date, independent_value as ind_val, dependent_value as dep_val, z_score_deviation, circadian_alignment FROM research_results WHERE experiment_id = ? {date_filter} ORDER BY morning_date DESC"
+                rows = conn.execute(query, params).fetchall()
                 results = []
                 for row in rows:
                     d = dict(row)
-                    # Wrap in metadata for UI compatibility
                     d['metadata'] = {
                         "ind_val": d['ind_val'],
                         "dep_val": d['dep_val'],
@@ -40,8 +47,8 @@ class ResearchCoordinator:
                     results.append(d)
                 return results
             else:
-                query = "SELECT ts, metric, val, metadata FROM experiment_results WHERE experiment_id = ? ORDER BY ts DESC"
-                rows = conn.execute(query, (experiment_id,)).fetchall()
+                query = f"SELECT ts, metric, val, metadata FROM experiment_results WHERE experiment_id = ? {date_filter} ORDER BY ts DESC"
+                rows = conn.execute(query, params).fetchall()
                 results = []
                 for row in rows:
                     d = dict(row)
@@ -50,11 +57,11 @@ class ResearchCoordinator:
                     results.append(d)
                 return results
 
-    def get_aggregated_metrics(self, experiment_id: str) -> Dict[str, Any]:
+    def get_aggregated_metrics(self, experiment_id: str, start_date: date = None, end_date: date = None) -> Dict[str, Any]:
         """
-        Calculates high-level stats (Pearson R, MAE) for the study.
+        Calculates high-level stats for the study within a specific range.
         """
-        results = self.get_experiment_results(experiment_id)
+        results = self.get_experiment_results(experiment_id, start_date, end_date)
         if not results or len(results) < 2:
             return {"correlation": 0.0, "count": len(results), "status": "Insufficient Data"}
 

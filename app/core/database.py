@@ -53,7 +53,8 @@ class SomaticDatabase:
                         val REAL NOT NULL,
                         unit TEXT,
                         source TEXT,
-                        tag TEXT
+                        tag TEXT,
+                        UNIQUE(ts, metric, source)
                     )
                 """)
                 conn.execute("""
@@ -62,7 +63,8 @@ class SomaticDatabase:
                         ts TEXT NOT NULL,
                         metric TEXT NOT NULL,
                         val REAL NOT NULL,
-                        metadata TEXT
+                        metadata TEXT,
+                        UNIQUE(experiment_id, ts, metric)
                     )
                 """)
                 conn.execute("""
@@ -102,7 +104,7 @@ class SomaticDatabase:
         self._ensure_initialized()
         with sqlite3.connect(self.working_db) as conn:
             conn.executemany("""
-                INSERT INTO biometrics (ts, metric, val, unit, source, tag)
+                INSERT OR REPLACE INTO biometrics (ts, metric, val, unit, source, tag)
                 VALUES (:ts, :metric, :val, :unit, :source, :tag)
             """, entries)
         self._flush_to_persistence()
@@ -111,7 +113,7 @@ class SomaticDatabase:
         self._ensure_initialized()
         with sqlite3.connect(self.working_db) as conn:
             conn.executemany("""
-                INSERT INTO experiment_results (experiment_id, ts, metric, val, metadata)
+                INSERT OR REPLACE INTO experiment_results (experiment_id, ts, metric, val, metadata)
                 VALUES (:experiment_id, :ts, :metric, :val, :metadata)
             """, entries)
         self._flush_to_persistence()

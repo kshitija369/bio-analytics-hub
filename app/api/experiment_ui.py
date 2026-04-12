@@ -12,26 +12,34 @@ _registry = ExperimentRegistry()
 _coordinator = ResearchCoordinator()
 
 @router.get("/")
-async def experiments_hub(request: Request):
+async def experiments_hub(request: Request, start: str = None, end: str = None):
     """The Research Hub (Main Dashboard)."""
+    from datetime import date
+    start_dt = date.fromisoformat(start) if start else None
+    end_dt = date.fromisoformat(end) if end else None
+
     experiments = _registry.get_all_experiments()
     # Add metrics for each experiment for the hub view
     for e in experiments:
-        e['metrics'] = _coordinator.get_aggregated_metrics(e['id'])
+        e['metrics'] = _coordinator.get_aggregated_metrics(e['id'], start_dt, end_dt)
         
     return templates.TemplateResponse(request, "main_hub.html", {
         "experiments": experiments
     })
 
 @router.get("/{experiment_id}")
-async def experiment_detail(request: Request, experiment_id: str):
+async def experiment_detail(request: Request, experiment_id: str, start: str = None, end: str = None):
     """The Individual Experiment Detail View (Analytical Dashboard)."""
+    from datetime import date
+    start_dt = date.fromisoformat(start) if start else None
+    end_dt = date.fromisoformat(end) if end else None
+
     protocol = _registry.get_experiment_by_id(experiment_id)
     if not protocol:
         raise HTTPException(status_code=404, detail="Experiment not found")
         
-    metrics = _coordinator.get_aggregated_metrics(experiment_id)
-    results = _coordinator.get_experiment_results(experiment_id)
+    metrics = _coordinator.get_aggregated_metrics(experiment_id, start_dt, end_dt)
+    results = _coordinator.get_experiment_results(experiment_id, start_dt, end_dt)
     
     return templates.TemplateResponse(request, "experiment_detail.html", {
         "protocol": protocol,

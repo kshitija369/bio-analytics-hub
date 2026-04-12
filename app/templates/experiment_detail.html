@@ -118,9 +118,23 @@
             paper_bgcolor: "#1a1a1a",
             font: {color: '#e0e0e0'},
             margin: {t: 20, b: 40, l: 40, r: 20},
-            xaxis: { gridcolor: "#333" },
+            xaxis: { 
+                gridcolor: "#333",
+                rangeselector: {
+                    buttons: [
+                        {count: 7, label: '7d', step: 'day', stepmode: 'backward'},
+                        {count: 30, label: '30d', step: 'day', stepmode: 'backward'},
+                        {count: 90, label: '90d', step: 'day', stepmode: 'backward'},
+                        {step: 'all'}
+                    ],
+                    bgcolor: '#333',
+                    activecolor: '#bb86fc'
+                },
+                rangeslider: { visible: true, bordercolor: "#333", thickness: 0.1 },
+                type: 'date'
+            },
             yaxis: { gridcolor: "#333" },
-            legend: { orientation: "h", y: 1.1 }
+            legend: { orientation: "h", y: 1.2 }
         };
 
         Plotly.newPlot('chart', [trace1, trace2], layout);
