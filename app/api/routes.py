@@ -134,30 +134,36 @@ async def db_status():
     return status
 
 @router.get("/experiments/evaluate")
-async def evaluate_experiments(experiment_id: str = "EXP-001", target_date: str = None):
+async def evaluate_experiments(experiment_id: str = "EXP-001", target_date: str = None, days_back: int = 0):
     """
     Triggers the evaluation of a specific experiment.
-    Target date defaults to today.
+    Target date defaults to today. Use days_back to evaluate a range of past dates.
     """
     from ..engine.experiment_manager import ExperimentManager
-    from datetime import date
+    from datetime import date, timedelta
     
     manager = ExperimentManager()
     
     if target_date:
-        eval_date = date.fromisoformat(target_date)
+        base_date = date.fromisoformat(target_date)
     else:
-        eval_date = date.today()
+        base_date = date.today()
         
-    try:
-        result = manager.evaluate_experiment_for_date(experiment_id, eval_date)
-        if result:
-            return {"status": "success", "result": result}
-        else:
-            return {"status": "no_data", "message": f"No data available for experiment {experiment_id} on {eval_date}"}
-    except Exception as e:
-        print(f"Experiment evaluation error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+    results = []
+    # If days_back is provided, evaluate from (base_date - days_back) to base_date
+    for i in range(days_back, -1, -1):
+        eval_date = base_date - timedelta(days=i)
+        try:
+            res = manager.evaluate_experiment_for_date(experiment_id, eval_date)
+            if res:
+                results.append(res)
+        except Exception as e:
+            print(f"Error evaluating {experiment_id} for {eval_date}: {e}")
+            
+    if results:
+        return {"status": "success", "evaluations": len(results), "latest_result": results[-1]}
+    else:
+        return {"status": "no_data", "message": f"No data available for experiment {experiment_id} in the requested window."}
 
 @router.get("/test-oura")
 async def test_oura_connectivity():
