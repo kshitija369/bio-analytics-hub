@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ protocol.name }} | Witness Lab</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body { background: #0a0a0a; color: #e0e0e0; font-family: 'JetBrains Mono', monospace; padding: 20px; }
+        .container { max-width: 1200px; margin: auto; }
+        .header { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 2px solid #3700b3; margin-bottom: 20px; }
+        h1 { color: #bb86fc; margin: 0; }
+        .grid { display: grid; grid-template-columns: 1fr 300px; gap: 20px; }
+        .card { background: #1a1a1a; padding: 20px; border-radius: 8px; border: 1px solid #333; margin-bottom: 20px; }
+        .metric-val { font-size: 2em; color: #03dac6; font-weight: bold; }
+        .label { color: #888; font-size: 0.8em; text-transform: uppercase; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #333; }
+        th { color: #03dac6; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>{{ protocol.name }}</h1>
+                <p style="color: #888;">{{ protocol.id }} | {{ protocol.hypothesis }}</p>
+            </div>
+            <a href="/experiments" style="color: #bb86fc;">&larr; Back to Hub</a>
+        </div>
+
+        <div class="grid">
+            <div class="main-column">
+                <div class="card">
+                    <div class="label">Visual Inference (Time-Series Delta)</div>
+                    <div id="chart" style="height: 500px;"></div>
+                </div>
+
+                <div class="card">
+                    <div class="label">Historical Log (Last {{ results|length }} days)</div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>High-Res (Avg)</th>
+                                <th>Daily Score</th>
+                                <th>Residual</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for r in results %}
+                            <tr>
+                                <td>{{ r.ts }}</td>
+                                <td>{{ r.metadata.ind_val|round(1) }}</td>
+                                <td>{{ r.metadata.dep_val|round(1) }}</td>
+                                <td>{{ r.val|round(2) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="sidebar">
+                <div class="card">
+                    <div class="label">Correlation (r)</div>
+                    <div class="metric-val">{{ metrics.correlation }}</div>
+                    <p><small>{{ metrics.status }}</small></p>
+                </div>
+                <div class="card">
+                    <div class="label">Mean Abs Error</div>
+                    <div class="metric-val">{{ metrics.mae }}</div>
+                </div>
+                <div class="card">
+                    <div class="label">Study Metadata</div>
+                    <p><small>Ind: {{ protocol.independent_variables[0].dimension }}</small></p>
+                    <p><small>Dep: {{ protocol.dependent_variables[0].dimension }}</small></p>
+                    <p><small>Window: {{ protocol.independent_variables[0].window.start_hour }}:00 - {{ protocol.independent_variables[0].window.end_hour }}:00</small></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const results = {{ results|tojson }};
+        const dates = results.map(r => r.ts);
+        const indVals = results.map(r => r.metadata.ind_val);
+        const depVals = results.map(r => r.metadata.dep_val);
+
+        const trace1 = {
+            x: dates,
+            y: indVals,
+            name: 'High-Res Dimension',
+            type: 'scatter',
+            mode: 'lines+markers',
+            line: {color: '#bb86fc', width: 3}
+        };
+
+        const trace2 = {
+            x: dates,
+            y: depVals,
+            name: 'Daily Aggregate',
+            type: 'scatter',
+            mode: 'lines+markers',
+            line: {color: '#03dac6', width: 3}
+        };
+
+        const layout = {
+            plot_bgcolor: "#1a1a1a",
+            paper_bgcolor: "#1a1a1a",
+            font: {color: '#e0e0e0'},
+            margin: {t: 20, b: 40, l: 40, r: 20},
+            xaxis: { gridcolor: "#333" },
+            yaxis: { gridcolor: "#333" },
+            legend: { orientation: "h", y: 1.1 }
+        };
+
+        Plotly.newPlot('chart', [trace1, trace2], layout);
+    </script>
+</body>
+</html>
