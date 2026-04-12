@@ -2,7 +2,7 @@
 alerts:
   enabled: true
   provider: "pushover"
-  cooldown_minutes: 30
+  cooldown_minutes: 240
 
 # Keys (to be set as environment variables: PUSHOVER_USER_KEY, PUSHOVER_API_TOKEN)
 # Visit https://pushover.net to get these.

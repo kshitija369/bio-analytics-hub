@@ -47,7 +47,7 @@ def run_pipeline(hours_back=168, practice_sessions=None):
     if std_oura:
         db.insert_biometrics(std_oura)
         for entry in std_oura:
-            trigger_engine.evaluate(entry['metric'], entry['val'])
+            trigger_engine.evaluate(entry['metric'], entry['val'], timestamp=entry['ts'])
 
     unified_raw = db.get_data(start, now)
     if unified_raw:

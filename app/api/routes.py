@@ -46,7 +46,7 @@ async def receive_apple_health_data(request: Request):
             
             # Evaluate real-time triggers
             for entry in standardized_data:
-                trigger_engine.evaluate(entry['metric'], entry['val'])
+                trigger_engine.evaluate(entry['metric'], entry['val'], timestamp=entry['ts'])
             
         print(f"[{datetime.now()}] Processed {len(standardized_data)} data points from Apple Health.")
         return {"status": "success", "processed_data_points": len(standardized_data)}

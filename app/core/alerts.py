@@ -25,9 +25,25 @@ class SomaticTriggerEngine:
             
         self.ops = {"gt": operator.gt, "lt": operator.lt, "eq": operator.eq}
 
-    def evaluate(self, metric_name, current_value):
+    def evaluate(self, metric_name, current_value, timestamp=None):
         if not self.config.get('alerts', {}).get('enabled', False):
             return
+
+        # 1. Freshness Check: Don't trigger for data older than 15 minutes
+        if timestamp:
+            if isinstance(timestamp, str):
+                try:
+                    # Handle both ISO formats
+                    dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                except:
+                    return
+            else:
+                dt = timestamp
+            
+            # If data is older than 15 minutes, skip alert (it's historical)
+            # Use naive comparison since we converted Z to offset above, or just ensure both are UTC
+            if (datetime.now() - dt.replace(tzinfo=None)).total_seconds() > 900:
+                return
 
         for rule in self.config.get('thresholds', []):
             if rule['metric'] == metric_name:

@@ -188,8 +188,9 @@ def test_evaluate_endpoint_days_back():
     assert response.json()["status"] == "success"
 
 def test_alert_engine_trigger():
+    now_iso = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     payload = {
-        "data": { "metrics": [{"name": "heart_rate", "data": [{"date": "2026-04-11T12:00:00Z", "qty": 150.0}]}] }
+        "data": { "metrics": [{"name": "heart_rate", "data": [{"date": now_iso, "qty": 150.0}]}] }
     }
     with patch("app.core.alerts.send_to_watch", return_value=True) as mock_send:
         response = client.post("/webhook/somatic-log", json=payload)
