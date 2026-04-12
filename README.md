@@ -1,8 +1,16 @@
-# Agnostic Biometric Research Platform
+# Bio-Analytics Hub: Your Personal Digital Health Laboratory
 
-A professional, provider-independent system designed for high-resolution physiological research. This platform anchors itself in established longevity frameworks (Attia, Walker, Panda) to quantify the realities of autonomic recovery.
+The **Bio-Analytics Hub** is an advanced **personal health monitoring platform** designed for individuals seeking a high-precision, data-driven approach to longevity and performance. By unifying disparate biometric streams from wearables like the **Oura Ring** and **Apple Watch**, the hub transforms raw physiological data into actionable, research-grade insights.
+
+## 🌟 Overview
+
+Built for **longevity enthusiasts**, **biohackers**, and **performance athletes**, this platform empowers users to become the principal investigators of their own health. It moves beyond simple "activity tracking" to formal **Inference-Driven Research**, allowing you to quantify how specific lifestyle interventions or recovery protocols actually impact your autonomic nervous system.
+
+### Why "Hardware-Agnostic"?
+The system is **Provider-Agnostic**—meaning it works independently of any single hardware ecosystem. Whether you upgrade your watch or switch to a new biometric ring, your historical research data and Z-score baselines remain intact, protecting your long-term health narrative from proprietary "data silos."
 
 ## 🏗 System Architecture
+...
 
 The platform follows **Clean Architecture** principles to ensure provider-agnosticism and research integrity.
 
