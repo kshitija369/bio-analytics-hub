@@ -25,6 +25,53 @@ graph TD
     end
 ```
 
+## 🛣 User Journeys
+
+### 1. Real-time Performance Prompt (Haptic Trigger)
+When physiological stress is detected, the system provides immediate haptic feedback to prompt a recovery state.
+
+```mermaid
+sequenceDiagram
+    participant W as Apple Watch
+    participant API as Biometric API
+    participant E as Trigger Engine
+    participant P as Pushover Service
+    
+    W->>API: 1-min HR/HRV data (Webhook)
+    API->>E: Evaluate Thresholds
+    Note over E: Freshness Check (<15 min)<br/>Cooldown Check (>4 hours)
+    E->>P: Send High-Priority Alert
+    P-->>W: Haptic "Recovery Prompt"
+    Note over W: User centers into<br/>Performance State
+```
+
+### 2. Daily Insights Cycle
+The standard morning workflow to update research dashboards.
+
+```mermaid
+graph LR
+    A[Wake Up] --> B[Sync Oura Ring to Phone]
+    B --> C[Click 'Sync & Refresh' on Dashboard]
+    subgraph System_Automation [Automated Logic]
+        C --> D[Fetch Last 72h Data]
+        D --> E[Run NAR Inference Engine]
+        E --> F[Update Z-Scores & Correlations]
+    end
+    F --> G[Analyze Daily Performance Trend]
+```
+
+### 3. Historical Research Backfill
+Establishing a robust physiological baseline for new users.
+
+```mermaid
+graph TD
+    A[Install System] --> B[Set OURA_PAT]
+    B --> C[Run bulk_load_oura.py 90]
+    C --> D[90-Day Raw Data Ingestion]
+    D --> E[Trigger /experiments/evaluate?days_back=14]
+    E --> F[Baseline established in Bio Analytics Hub]
+```
+
 ## 📊 Visual Gallery
 
 Explore the platform's analytical interfaces. 
