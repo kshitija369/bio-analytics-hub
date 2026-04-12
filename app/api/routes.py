@@ -88,15 +88,16 @@ async def get_dashboard():
     return HTMLResponse(content=html_content, status_code=200)
 
 @router.get("/sync")
-async def trigger_sync():
+async def trigger_sync(days: int = 7):
     """
     Endpoint to trigger a fresh data sync (Oura pull + Unify).
     """
     from ..main import run_pipeline
     try:
-        # Run the full 7-day sync
-        run_pipeline(hours_back=168)
-        return {"status": "success", "message": "7-day sync completed successfully."}
+        # Calculate hours back
+        hours = days * 24
+        run_pipeline(hours_back=hours)
+        return {"status": "success", "message": f"{days}-day sync completed successfully."}
     except Exception as e:
         print(f"Sync error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
