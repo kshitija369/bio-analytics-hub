@@ -19,7 +19,8 @@ class TestExperimentEngine(unittest.TestCase):
         self.db = SomaticDatabase(db_path=self.test_db_path, working_db=self.test_working_db)
         self.manager = ExperimentManager()
         self.manager.db = self.db
-        self.manager.repo = DimensionRepository(db=self.db)
+        self.repo = DimensionRepository(db=self.db)
+        self.manager.repo = self.repo
 
     def tearDown(self):
         for db in [self.test_db_path, self.test_working_db]:
@@ -84,6 +85,46 @@ class TestExperimentEngine(unittest.TestCase):
         self.assertIsNotNone(row)
         self.assertEqual(row[1], target_date.isoformat())
         self.assertEqual(row[3], 95.0) # dependent_value
+
+    def test_dimension_repo_naive_conversion(self):
+        # Insert timezone-aware data
+        ts_aware = "2026-04-11T12:00:00+00:00"
+        self.db.insert_biometrics([{
+            "ts": ts_aware, "metric": "heart_rate", "val": 60.0,
+            "unit": "bpm", "source": "AwareSource", "tag": "test"
+        }])
+        
+        start = datetime(2026, 4, 11, 0, 0)
+        end = datetime(2026, 4, 11, 23, 59)
+        df = self.repo.get_dimension_data("HeartRate", start, end)
+        
+        # Verify index is naive
+        self.assertIsNone(df.index.tz)
+        self.assertEqual(df.index[0].hour, 12)
+
+    def test_upsert_logic(self):
+        ts = "2026-04-11T12:00:00Z"
+        # 1. First insert
+        self.db.insert_biometrics([{
+            "ts": ts, "metric": "heart_rate", "val": 60.0,
+            "unit": "bpm", "source": "Mock", "tag": "v1"
+        }])
+        
+        # 2. Re-insert same key with different value (UPSERT)
+        self.db.insert_biometrics([{
+            "ts": ts, "metric": "heart_rate", "val": 75.0,
+            "unit": "bpm", "source": "Mock", "tag": "v2"
+        }])
+        
+        # 3. Check record count and value
+        self.db._ensure_initialized()
+        import sqlite3
+        conn = sqlite3.connect(self.test_working_db)
+        rows = conn.execute("SELECT val, tag FROM biometrics WHERE ts = ? AND metric = 'heart_rate'", (ts,)).fetchall()
+        
+        self.assertEqual(len(rows), 1) # Should be exactly one due to UNIQUE constraint
+        self.assertEqual(rows[0][0], 75.0)
+        self.assertEqual(rows[0][1], "v2")
 
 if __name__ == "__main__":
     unittest.main()

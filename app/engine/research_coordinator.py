@@ -1,7 +1,7 @@
 import json
 import pandas as pd
 from typing import List, Dict, Any, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from .dimension_repository import DimensionRepository
 from app.core.database import SomaticDatabase
 

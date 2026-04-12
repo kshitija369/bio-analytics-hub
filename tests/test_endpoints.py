@@ -72,12 +72,30 @@ def setup_test_environment(monkeypatch):
     
     # Patch the DATABASE singleton
     import app.api.routes as routes
+    import app.api.experiment_ui as exp_ui
+    import app.api.experiment_api as exp_api
     import importlib
     import app.engine.narc_evaluator
     importlib.reload(app.engine.narc_evaluator)
     
     mock_db_instance = MockSomaticDatabase()
+    mock_db_instance._ensure_initialized()
+    
+    # Force injection into routers
     monkeypatch.setattr(routes, "get_db", lambda: mock_db_instance)
+    monkeypatch.setattr(exp_ui, "_coordinator", MagicMock())
+    monkeypatch.setattr(exp_api, "_coordinator", MagicMock())
+    
+    # Actually, easier to patch the Coordinator's internal repo and db
+    from app.engine.research_coordinator import ResearchCoordinator
+    from app.engine.dimension_repository import DimensionRepository
+    
+    test_coordinator = ResearchCoordinator()
+    test_coordinator.db = mock_db_instance
+    test_coordinator.repo = DimensionRepository(db=mock_db_instance)
+    
+    monkeypatch.setattr(exp_ui, "_coordinator", test_coordinator)
+    monkeypatch.setattr(exp_api, "_coordinator", test_coordinator)
     
     from app.core.alerts import SomaticTriggerEngine
     real_engine = SomaticTriggerEngine()
@@ -85,6 +103,11 @@ def setup_test_environment(monkeypatch):
     monkeypatch.setattr(routes, "get_trigger_engine", lambda: real_engine)
 
     with patch("app.core.database.SomaticDatabase", return_value=mock_db_instance):
+        # Clear research_results explicitly to avoid leakages
+        with sqlite3.connect(mock_db_instance.working_db) as conn:
+            conn.execute("DELETE FROM research_results")
+            conn.execute("DELETE FROM experiment_results")
+            conn.execute("DELETE FROM biometrics")
         yield
         
     if os.path.exists(TEST_DIR):
@@ -163,6 +186,30 @@ def test_experiment_api_list():
     assert len(data) > 0
     ids = [e["id"] for e in data]
     assert "EXP-NARC-001" in ids
+
+def test_experiment_results_date_filter():
+    # Insert results for two different days
+    mock_db_instance.insert_research_results([
+        {
+            "experiment_id": "EXP-NARC-001",
+            "morning_date": "2026-04-01",
+            "independent_value": 50.0, "dependent_value": 60.0,
+            "z_score_deviation": 0.0, "circadian_alignment": 0.0, "subjective_rating": 5
+        },
+        {
+            "experiment_id": "EXP-NARC-001",
+            "morning_date": "2026-04-10",
+            "independent_value": 70.0, "dependent_value": 80.0,
+            "z_score_deviation": 1.0, "circadian_alignment": -1.0, "subjective_rating": 5
+        }
+    ])
+    
+    # Filter for only the second one
+    response = client.get("/api/v1/experiments/EXP-NARC-001/results?start=2026-04-05")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["ts"] == "2026-04-10"
 
 def test_evaluate_endpoint_days_back():
     # Insert some data for yesterday
