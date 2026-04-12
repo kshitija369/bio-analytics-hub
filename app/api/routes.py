@@ -21,10 +21,13 @@ def get_trigger_engine():
         _trigger_engine = SomaticTriggerEngine()
     return _trigger_engine
 
-@router.post("/webhook/somatic-log")
+@router.post("/webhook/somatic-log", tags=["Data Ingestion"])
 async def receive_apple_health_data(request: Request):
     """
-    Endpoint for receiving health data from Health Auto Export.
+    ### Apple Health Webhook (Auto-Export)
+    Receiver for high-resolution 1-minute biometric data from Apple Watch.
+    - **Validates**: Standard metric names.
+    - **Triggers**: Real-time haptic prompts if thresholds are exceeded.
     """
     # Imports inside to ensure fast startup
     from ..providers.apple_health import AppleHealthProvider
@@ -59,10 +62,11 @@ async def receive_apple_health_data(request: Request):
 async def health_check():
     return {"status": "alive"}
 
-@router.get("/dashboard")
+@router.get("/dashboard", tags=["Somatic Dashboard"])
 async def get_dashboard():
     """
-    Serves the interactive High-Contrast State Analyzer.
+    ### High-Contrast Somatic Dashboard
+    Serves the primary unified dashboard showing Heart Rate, HRV, and State Decryption.
     """
     from fastapi.responses import HTMLResponse
     from ..core.normalization import SomaticNormalizer
@@ -87,10 +91,11 @@ async def get_dashboard():
     html_content = SomaticDashboard.get_html(df_normalized)
     return HTMLResponse(content=html_content, status_code=200)
 
-@router.get("/sync")
+@router.get("/sync", tags=["Data Ingestion"])
 async def trigger_sync(days: int = 7):
     """
-    Endpoint to trigger a fresh data sync (Oura pull + Unify).
+    ### Oura V2 Sync
+    Triggers a manual pull of Oura high-resolution data and daily aggregates.
     """
     from ..main import run_pipeline
     try:
@@ -102,10 +107,11 @@ async def trigger_sync(days: int = 7):
         print(f"Sync error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/db-status")
+@router.get("/db-status", tags=["System Diagnostics"])
 async def db_status():
     """
-    Debug endpoint to check database integrity and record counts.
+    ### Database Integrity Check
+    Returns record counts across all biometric and research tables.
     """
     import os
     db = get_db()
@@ -137,12 +143,13 @@ async def db_status():
             
     return status
 
-@router.get("/experiments/evaluate")
-async def evaluate_experiments(experiment_id: str = "EXP-001", target_date: str = None, days_back: int = 0):
+@router.get("/experiments/evaluate", tags=["Research API"])
+async def evaluate_experiments(experiment_id: str = "EXP-NARC-001", target_date: str = None, days_back: int = 0):
     """
-    Triggers the evaluation of a specific experiment.
-    Target date defaults to today. Use days_back to evaluate a range of past dates.
+    ### Trigger Study Evaluation
+    Runs the inference logic (e.g., Z-Score, Dip Calculation) for a specific study.
     """
+
     from ..engine.experiment_manager import ExperimentManager
     from datetime import date, timedelta
     
@@ -173,10 +180,11 @@ async def evaluate_experiments(experiment_id: str = "EXP-001", target_date: str 
     else:
         return {"status": "no_data", "message": f"No data available for experiment {experiment_id} in the requested window."}
 
-@router.get("/test-oura")
+@router.get("/test-oura", tags=["System Diagnostics"])
 async def test_oura_connectivity():
     """
-    Diagnostic endpoint to test live Oura API connectivity.
+    ### Live Oura API Handshake
+    Diagnostic endpoint to verify authentication and data visibility.
     """
     import requests
     import os

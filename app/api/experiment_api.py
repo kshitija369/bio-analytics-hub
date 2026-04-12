@@ -7,14 +7,22 @@ router = APIRouter()
 _registry = ExperimentRegistry()
 _coordinator = ResearchCoordinator()
 
-@router.get("/")
+@router.get("/", tags=["Research API"])
 async def list_experiments() -> List[Dict[str, Any]]:
-    """Returns metadata for all experiments."""
+    """
+    ### List All Experiments
+    Retrieves metadata for all defined research protocols.
+    """
     return _registry.get_all_experiments()
 
-@router.get("/{experiment_id}")
+@router.get("/{experiment_id}", tags=["Research API"])
 async def get_experiment(experiment_id: str, start: str = None, end: str = None) -> Dict[str, Any]:
-    """Returns protocol and aggregated results for a specific experiment."""
+    """
+    ### Get Study Protocol & Aggregate Metrics
+    Returns the hypothesis, variables, and calculated correlation ($r$) for a specific study.
+    - **Calculates**: Pearson Correlation and Mean Absolute Error on the fly.
+    - **Zoom**: Filters metrics based on optional start/end dates.
+    """
     proto = _registry.get_experiment_by_id(experiment_id)
     if not proto:
         raise HTTPException(status_code=404, detail="Experiment not found")
@@ -29,9 +37,12 @@ async def get_experiment(experiment_id: str, start: str = None, end: str = None)
         "metrics": metrics
     }
 
-@router.get("/{experiment_id}/results")
+@router.get("/{experiment_id}/results", tags=["Research API"])
 async def get_results(experiment_id: str, start: str = None, end: str = None) -> List[Dict[str, Any]]:
-    """Returns raw time-series results for an experiment."""
+    """
+    ### Fetch Raw Research Results
+    Retrieves the time-series dimension data (Independent vs. Dependent) for visualization.
+    """
     from datetime import date
     start_dt = date.fromisoformat(start) if start else None
     end_dt = date.fromisoformat(end) if end else None

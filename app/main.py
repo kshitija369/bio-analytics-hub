@@ -1,7 +1,21 @@
 from fastapi import FastAPI
 import os
 
-app = FastAPI(title="Witness State Monitoring")
+app = FastAPI(
+    title="Witness State Monitoring API",
+    description="""
+    A somatic research platform for tracking the physiological reality of non-dual awareness.
+    
+    ### Key Features:
+    * **Research Engine**: Agnostic biometric dimensions (HRV, HeartRate) vs. Daily Aggregates.
+    * **NARC Study**: Nocturnal Autonomic Recovery & Readiness Correlation with Z-Score normalization.
+    * **Real-time Triggers**: Haptic prompts for high HR and low recovery states.
+    * **Agnostic Ingestion**: Support for Oura V2 and Apple Health (Auto-Export).
+    """,
+    version="1.1.0",
+    docs_url="/docs",
+    redoc_url="/redoc"
+)
 
 # Simple health endpoints
 @app.get("/")
