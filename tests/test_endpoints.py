@@ -1,6 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone, timedelta, date
 import os
 import shutil
 import sqlite3
@@ -148,7 +148,30 @@ def test_experiment_api_list():
     assert response.status_code == 200
     data = response.json()
     assert len(data) > 0
-    assert data[0]["id"] == "EXP-001"
+    ids = [e["id"] for e in data]
+    assert "EXP-001" in ids
+    assert "EXP-NARC-001" in ids
+
+def test_evaluate_endpoint_days_back():
+    # Insert some data for yesterday
+    yesterday = (date.today() - timedelta(days=1)).isoformat()
+    mock_db_instance.insert_biometrics([{
+        "ts": f"{yesterday}T23:00:00Z",
+        "metric": "heart_rate_variability", "val": 55.0,
+        "unit": "ms", "source": "Mock", "tag": "baseline"
+    }, {
+        "ts": f"{date.today().isoformat()}T00:00:00Z",
+        "metric": "readiness_score", "val": 80.0,
+        "unit": "score", "source": "Mock", "tag": "daily_insight"
+    }])
+    
+    # Evaluate with days_back=0 (just today, might fail if no data for today)
+    # Evaluate with target_date set to today
+    today_str = date.today().isoformat()
+    response = client.get(f"/experiments/evaluate?experiment_id=EXP-001&target_date={today_str}&days_back=0")
+    assert response.status_code == 200
+    assert response.json()["status"] == "success"
+    assert response.json()["evaluations"] == 1
 
 def test_alert_engine_trigger():
     payload = {
