@@ -1,0 +1,12 @@
+id: "EXP-NARC-001"
+name: "NARC: Nocturnal Autonomic Recovery"
+hypothesis: "Agnostic Z-Score HRV deviations and circadian dip alignment correlate with daily readiness."
+independent_variables:
+  - dimension: "HRV"
+    window: "22:30-07:30"
+  - dimension: "HeartRate"
+    metric: "Dip_Time"
+dependent_variables:
+  - dimension: "ReadinessScore"
+    granularity: "daily_aggregate"
+evaluation: "Z-Score Normalization & Circadian Alignment"

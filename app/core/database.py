@@ -65,6 +65,18 @@ class SomaticDatabase:
                         metadata TEXT
                     )
                 """)
+                conn.execute("""
+                    CREATE TABLE IF NOT EXISTS research_results (
+                        experiment_id TEXT NOT NULL,
+                        morning_date TEXT NOT NULL,
+                        independent_value REAL,
+                        dependent_value REAL,
+                        z_score_deviation REAL,
+                        circadian_alignment REAL,
+                        subjective_rating INTEGER,
+                        PRIMARY KEY (experiment_id, morning_date)
+                    )
+                """)
                 conn.execute("CREATE INDEX IF NOT EXISTS idx_ts ON biometrics(ts)")
                 conn.execute("CREATE INDEX IF NOT EXISTS idx_metric ON biometrics(metric)")
                 conn.execute("CREATE INDEX IF NOT EXISTS idx_exp_id ON experiment_results(experiment_id)")

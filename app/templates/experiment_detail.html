@@ -42,7 +42,12 @@
                                 <th>Date</th>
                                 <th>High-Res (Avg)</th>
                                 <th>Daily Score</th>
-                                <th>Residual</th>
+                                {% if protocol.id == "EXP-NARC-001" %}
+                                    <th>Z-Score</th>
+                                    <th>Dip Offset (hr)</th>
+                                {% else %}
+                                    <th>Residual</th>
+                                {% endif %}
                             </tr>
                         </thead>
                         <tbody>
@@ -51,7 +56,12 @@
                                 <td>{{ r.ts }}</td>
                                 <td>{{ r.metadata.ind_val|round(1) }}</td>
                                 <td>{{ r.metadata.dep_val|round(1) }}</td>
-                                <td>{{ r.val|round(2) }}</td>
+                                {% if protocol.id == "EXP-NARC-001" %}
+                                    <td style="color: {{ '#03dac6' if r.metadata.z_score > 0 else '#cf6679' }}">{{ r.metadata.z_score|round(2) }}</td>
+                                    <td style="color: {{ '#cf6679' if r.metadata.circadian > 0 else '#03dac6' }}">{{ r.metadata.circadian|round(2) }}</td>
+                                {% else %}
+                                    <td>{{ r.val|round(2) }}</td>
+                                {% endif %}
                             </tr>
                             {% endfor %}
                         </tbody>

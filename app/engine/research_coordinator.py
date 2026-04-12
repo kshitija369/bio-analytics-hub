@@ -17,22 +17,38 @@ class ResearchCoordinator:
     def get_experiment_results(self, experiment_id: str) -> List[Dict[str, Any]]:
         """
         Fetches all recorded results for a specific experiment from 
-        the experiment_results table.
+        the experiment_results or research_results table.
         """
         self.db._ensure_initialized()
         import sqlite3
         with sqlite3.connect(self.db.working_db) as conn:
             conn.row_factory = sqlite3.Row
-            query = "SELECT ts, metric, val, metadata FROM experiment_results WHERE experiment_id = ? ORDER BY ts DESC"
-            rows = conn.execute(query, (experiment_id,)).fetchall()
             
-            results = []
-            for row in rows:
-                d = dict(row)
-                if d['metadata']:
-                    d['metadata'] = json.loads(d['metadata'])
-                results.append(d)
-            return results
+            if experiment_id == "EXP-NARC-001":
+                query = "SELECT morning_date as ts, 'NARC_Score' as metric, independent_value as val, morning_date, independent_value as ind_val, dependent_value as dep_val, z_score_deviation, circadian_alignment FROM research_results WHERE experiment_id = ? ORDER BY morning_date DESC"
+                rows = conn.execute(query, (experiment_id,)).fetchall()
+                results = []
+                for row in rows:
+                    d = dict(row)
+                    # Wrap in metadata for UI compatibility
+                    d['metadata'] = {
+                        "ind_val": d['ind_val'],
+                        "dep_val": d['dep_val'],
+                        "z_score": d['z_score_deviation'],
+                        "circadian": d['circadian_alignment']
+                    }
+                    results.append(d)
+                return results
+            else:
+                query = "SELECT ts, metric, val, metadata FROM experiment_results WHERE experiment_id = ? ORDER BY ts DESC"
+                rows = conn.execute(query, (experiment_id,)).fetchall()
+                results = []
+                for row in rows:
+                    d = dict(row)
+                    if d['metadata']:
+                        d['metadata'] = json.loads(d['metadata'])
+                    results.append(d)
+                return results
 
     def get_aggregated_metrics(self, experiment_id: str) -> Dict[str, Any]:
         """

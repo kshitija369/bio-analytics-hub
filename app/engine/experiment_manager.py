@@ -44,6 +44,10 @@ class ExperimentManager:
         # Dispatch based on experiment type or ID
         if experiment_id == "EXP-001":
             return self._run_nocturnal_recovery_eval(protocol, target_date)
+        elif experiment_id == "EXP-NARC-001":
+            from .narc_evaluator import NARCEvaluator
+            evaluator = NARCEvaluator(db=self.db)
+            return evaluator.evaluate(target_date)
         else:
             print(f"--- [ExperimentManager] Unsupported experiment: {experiment_id} ---")
             return None
