@@ -1,51 +1,57 @@
 # Agnostic Biometric Research Platform
 
-Welcome to the **Agnostic Biometric Research Platform**, a robust, provider-independent system designed to conduct rigorous physiological research based on established longevity frameworks.
+A professional, provider-independent system designed for high-resolution physiological research. This platform anchors itself in established longevity frameworks (Attia, Walker, Panda) to quantify the realities of autonomic recovery.
 
-By moving beyond simple data collection to **Inference-Driven Research**, this system anchors itself in the methodologies of Attia, Walker, and Panda, helping to quantify the physiological realities of autonomic recovery.
+## 🏗 System Architecture
 
-## 🧬 Core Architecture: The Modular Data Pipeline
+The platform follows **Clean Architecture** principles to ensure provider-agnosticism and research integrity.
 
-1. **Clean Provider Adapters (`app/adapters/`):** All biometric sources (Oura, Apple Health) are strictly encapsulated as adapters. The system is provider-agnostic.
-2. **Universal Dimensions (`app/domain/`):** Raw data is mapped into universal dimensions (e.g., `Dimension.HRV`, `Dimension.HeartRate`) ensuring experiments run flawlessly regardless of the hardware used.
-3. **Inference Engine (`app/engine/`):** Orchestrates the research. Calculates Z-Score Normalization and evaluates statistical significance (e.g., Pearson Correlation) to translate passive tracking into active feedback.
+```mermaid
+graph TD
+    subgraph Data_Sources [Data Sources]
+        A[Apple Watch] -->|Webhook| B[Biometric API]
+        O[Oura Ring] -->|Pull| B
+    end
 
-## 🔬 The NAR Study (Nocturnal Autonomic Research)
+    subgraph Core_Engine [Research Engine]
+        B -->|Normalize| D[Domain Layer]
+        D -->|Agnostic Dimensions| E[Inference Engine]
+        E -->|Z-Score / Correlation| F[(Bio Analytics Hub)]
+    end
 
-The flagship study of this platform is **NAR** (`EXP-NARC-001`). It analyzes how high-resolution nocturnal autonomic behaviors correlate with daily aggregate readiness.
+    subgraph Visualization [Analytics]
+        F --> G[Research Hub UI]
+        G --> H[Interactive Plotly Dashboards]
+    end
+```
 
-### Key Metrics Tracked
-* **Z-Score Normalization**: Focuses on deviations from your personal 21-day baseline ($Z = \frac{x - \mu}{\sigma}$).
-* **Circadian Dip Alignment**: Identifies the timing of `min(heart_rate)`. Dips occurring after 03:00 AM indicate autonomic misalignment (e.g., sympathetic arousal, late-night digestion) and apply a penalty to the correlation.
+## 🧬 Core Logic: The NAR Study
 
-## 🛠 System Operations & Hydration
+The flagship **Nocturnal Autonomic Research (NAR)** study (`EXP-NAR-001`) analyzes the relationship between high-resolution nocturnal data and daily readiness.
 
-To support longitudinal longevity trends (e.g., viewing 90-day RHR hammock curves), the system utilizes a two-tier **Hydration & Sync Strategy**.
+### Key Research Metrics
+*   **Baseline Delta (Z)**: Measures deviations from your personal 21-day physiological baseline using Z-Score normalization ($Z = \frac{x - \mu}{\sigma}$).
+*   **Sleep Efficiency (Dip)**: Analyzes the "Hammock Curve" of your heart rate. Dips occurring after 03:00 AM indicate autonomic misalignment and are automatically flagged.
 
-### The Quarter Bulk Read
-For a new installation, you must hydrate the system's `Bio_Analytics_Hub` with historical data to establish your Z-Score baselines.
+## 🛠 Operation Guide
+
+### 1. Hydration & Sync
+To establish a statistically sound baseline, hydrate the system with historical data:
 ```bash
-# Run the bulk loader to pull the last 90 days from Oura
-export OURA_PAT="your_personal_access_token"
-export PYTHONPATH=$PYTHONPATH:.
+export OURA_PAT="your_token"
 python3 scripts/bulk_load_oura.py 90
 ```
 
-### The Delta Sync
-The system handles incremental updates via Cloud Scheduler hitting the `/sync` API or through Webhooks from Apple Health (`/webhook/biometric-log`), seamlessly merging high-res intra-day data with daily aggregates.
+### 2. One-Click Refresh
+The platform features a built-in refresh mechanism. Clicking **"Sync & Refresh"** on any dashboard will:
+1.  Trigger a delta-sync from all providers.
+2.  Recalculate study results for the last 72 hours.
+3.  Update all interactive charts.
 
-## 📚 Interactive Laboratory (API & Documentation)
-
-The entire platform is documented as an Interactive Laboratory via built-in OpenAPI specifications. 
-* **Swagger UI**: `/docs` (Test endpoints interactively)
-* **Redoc**: `/redoc` (Deep reading)
-
-Endpoints are organized into logical categories:
-* **Data Ingestion**: Syncs and Webhooks.
-* **Research API**: Dynamic endpoints for fetching correlation statistics and raw time-series data with dynamic zooming (`start_date` / `end_date`).
-* **Somatic Dashboard**: High-contrast visual analytics.
-* **System Diagnostics**: Database health and API connectivity checks.
+## 📚 Interactive Laboratory
+The system is fully documented via OpenAPI. Access these endpoints directly on your deployed instance:
+*   **Interactive API Docs**: `/docs`
+*   **Technical Reference**: `/redoc`
 
 ---
-
 *Designed for precise measurement of Peak Autonomic Recovery and Performance States.*
