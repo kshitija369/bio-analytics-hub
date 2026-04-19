@@ -6,6 +6,16 @@ from .base import BiometricProvider
 import pandas as pd
 
 class OuraProvider(BiometricProvider):
+    # New: LOINC Mappings for DT4H-Sim FHIR Compliance
+    LOINC_MAP = {
+        "heart_rate": "8867-4",
+        "heart_rate_variability": "80404-7",
+        "steps": "55423-8",
+        "readiness_score": "LP200424-3", # Generic Recovery/Readiness
+        "sleep_score": "70182-1",      # Sleep Duration/Quality
+        "hrv_balance": "80404-7"        # Map to HRV dimension
+    }
+
     def __init__(self, pat=None):
         # 1. Prioritize passed PAT, then environment, then fallback
         raw_pat = pat or os.environ.get("OURA_PAT", "")
@@ -85,11 +95,18 @@ class OuraProvider(BiometricProvider):
             metric_type = entry.get('_metric_type')
             day = entry.get('day')
             
+            def create_entry(ts, metric, val, unit, source, tag):
+                return {
+                    "ts": ts, "metric": metric, "val": val,
+                    "unit": unit, "source": source, "tag": tag,
+                    "loinc": self.LOINC_MAP.get(metric)
+                }
+
             if metric_type == 'heartrate':
-                standardized.append({
-                    "ts": entry['timestamp'], "metric": "heart_rate", "val": float(entry['bpm']),
-                    "unit": "bpm", "source": "Oura_v2", "tag": "baseline"
-                })
+                standardized.append(create_entry(
+                    entry['timestamp'], "heart_rate", float(entry['bpm']),
+                    "bpm", "Oura_v2", "baseline"
+                ))
             
             elif metric_type == 'sleep':
                 if 'hrv' in entry and 'items' in entry['hrv']:
@@ -98,45 +115,45 @@ class OuraProvider(BiometricProvider):
                     for i, val in enumerate(entry['hrv']['items']):
                         if val is not None:
                             sample_ts = (ts + timedelta(seconds=i*interval)).isoformat()
-                            standardized.append({
-                                "ts": sample_ts, "metric": "heart_rate_variability", "val": float(val),
-                                "unit": "ms", "source": "Oura_v2_sleep", "tag": "baseline"
-                            })
+                            standardized.append(create_entry(
+                                sample_ts, "heart_rate_variability", float(val),
+                                "ms", "Oura_v2_sleep", "baseline"
+                            ))
                 elif 'average_hrv' in entry and entry['average_hrv']:
-                    standardized.append({
-                        "ts": f"{day}T00:00:00Z", "metric": "heart_rate_variability", 
-                        "val": float(entry['average_hrv']), "unit": "ms", "source": "Oura_v2", "tag": "daily_insight"
-                    })
+                    standardized.append(create_entry(
+                        f"{day}T00:00:00Z", "heart_rate_variability", 
+                        float(entry['average_hrv']), "ms", "Oura_v2", "daily_insight"
+                    ))
 
             elif metric_type == 'daily_readiness':
                 base_ts = f"{day}T00:00:00Z"
                 if 'score' in entry:
-                    standardized.append({
-                        "ts": base_ts, "metric": "readiness_score", "val": float(entry['score']),
-                        "unit": "score", "source": "Oura_v2", "tag": "daily_insight"
-                    })
+                    standardized.append(create_entry(
+                        base_ts, "readiness_score", float(entry['score']),
+                        "score", "Oura_v2", "daily_insight"
+                    ))
                 if 'contributors' in entry and 'hrv_balance' in entry['contributors']:
                     val = entry['contributors']['hrv_balance']
                     if val is not None:
-                        standardized.append({
-                            "ts": base_ts, "metric": "hrv_balance", "val": float(val),
-                            "unit": "score", "source": "Oura_v2", "tag": "daily_insight"
-                        })
+                        standardized.append(create_entry(
+                            base_ts, "hrv_balance", float(val),
+                            "score", "Oura_v2", "daily_insight"
+                        ))
 
             elif metric_type == 'daily_sleep':
                 base_ts = f"{day}T00:00:00Z"
                 if 'score' in entry:
-                    standardized.append({
-                        "ts": base_ts, "metric": "sleep_score", "val": float(entry['score']),
-                        "unit": "score", "source": "Oura_v2", "tag": "daily_insight"
-                    })
+                    standardized.append(create_entry(
+                        base_ts, "sleep_score", float(entry['score']),
+                        "score", "Oura_v2", "daily_insight"
+                    ))
 
             elif metric_type == 'daily_activity':
                 base_ts = f"{day}T12:00:00Z"
                 if 'steps' in entry:
-                    standardized.append({
-                        "ts": base_ts, "metric": "steps", "val": float(entry['steps']),
-                        "unit": "steps", "source": "Oura_v2", "tag": "daily_insight"
-                    })
+                    standardized.append(create_entry(
+                        base_ts, "steps", float(entry['steps']),
+                        "steps", "Oura_v2", "daily_insight"
+                    ))
                     
         return standardized
