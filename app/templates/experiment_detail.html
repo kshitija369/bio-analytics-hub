@@ -197,16 +197,55 @@
                     const simDates = data.prediction.map(p => p.ts);
                     const simHRV = data.prediction.map(p => p.heart_rate_variability);
 
+                    // 1. Calculate the 'Baseline Shadow' (Average of historical indVals)
+                    const baselineVal = indVals.reduce((a, b) => a + b, 0) / indVals.length;
+                    const baselineArray = simDates.map(() => baselineVal);
+
+                    // 2. The Baseline Shadow Trace (Gray Band)
+                    const baselineTrace = {
+                        x: simDates,
+                        y: baselineArray,
+                        name: 'Baseline Twin',
+                        type: 'scatter',
+                        mode: 'lines',
+                        line: {color: 'rgba(150, 150, 150, 0.5)', width: 2, dash: 'dot'}
+                    };
+
+                    // 3. The Predictive Line (Divergence Shading)
+                    // We split the prediction into two traces for color-coded fills
+                    const surplusTrace = {
+                        x: simDates,
+                        y: simHRV.map((v, i) => v > baselineArray[i] ? v : baselineArray[i]),
+                        fill: 'tonexty',
+                        fillcolor: 'rgba(3, 218, 198, 0.2)', // Teal Surplus
+                        name: 'Physiological Surplus',
+                        type: 'scatter',
+                        mode: 'lines',
+                        line: {color: '#03dac6', width: 0}
+                    };
+
+                    const debtTrace = {
+                        x: simDates,
+                        y: simHRV.map((v, i) => v < baselineArray[i] ? v : baselineArray[i]),
+                        fill: 'tonexty',
+                        fillcolor: 'rgba(207, 102, 121, 0.2)', // Crimson Debt
+                        name: 'Physiological Debt',
+                        type: 'scatter',
+                        mode: 'lines',
+                        line: {color: '#cf6679', width: 0}
+                    };
+
                     const simTrace = {
                         x: simDates,
                         y: simHRV,
-                        name: 'Forecasted Recovery',
+                        name: 'Prospective Twin',
                         type: 'scatter',
                         mode: 'lines',
-                        line: {color: '#ffb74d', width: 3, dash: 'dash'}
+                        line: {color: '#ffb74d', width: 4}
                     };
 
-                    Plotly.addTraces('chart', [simTrace]);
+                    // Re-render chart with new traces
+                    Plotly.addTraces('chart', [baselineTrace, surplusTrace, debtTrace, simTrace]);
                     
                     const lastDate = new Date(simDates[simDates.length - 1]);
                     const startDate = new Date(lastDate.getTime() - (7 * 24 * 60 * 60 * 1000));
