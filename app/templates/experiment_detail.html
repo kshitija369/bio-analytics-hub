@@ -76,13 +76,25 @@
                 <!-- DT4H-Sim: Predictive Sandbox -->
                 <div class="card" style="border-color: #ffb74d;">
                     <div class="label" style="color: #ffb74d;">Predictive Sandbox (MSDT)</div>
-                    <p><small>Simulate how future events impact your recovery trajectory.</small></p>
-                    <select id="event-type" style="width: 100%; background: #222; color: #fff; border: 1px solid #444; padding: 5px; margin-bottom: 10px;">
-                        <option value="meal">Late Meal (22:00)</option>
-                        <option value="travel">Cross-timezone Travel</option>
-                        <option value="workout">High-Intensity Workout</option>
+                    <p style="font-size: 0.85em; margin-bottom: 15px; color: #ccc;">
+                        <strong>Phase 2 Simulation:</strong> Model how lifestyle interventions impact your recovery trajectory. 
+                        Choose an event below to project its effect on your autonomic balance.
+                    </p>
+                    
+                    <label style="font-size: 0.7em; color: #888; display: block; margin-bottom: 5px;">PROSPECTIVE EVENT</label>
+                    <select id="event-type" style="width: 100%; background: #222; color: #fff; border: 1px solid #444; padding: 8px; margin-bottom: 15px; border-radius: 4px;">
+                        <option value="meal">Late Night Meal (High Carb, 22:00)</option>
+                        <option value="travel">Cross-timezone Travel (Jet Lag)</option>
+                        <option value="workout">Intense PM Workout (Sympathetic)</option>
                     </select>
-                    <button onclick="runSimulation()" id="sim-btn" class="btn" style="width: 100%; background: #ffb74d; color: #000;">Run Forecast</button>
+                    
+                    <button onclick="runSimulation()" id="sim-btn" class="btn" style="width: 100%; background: #ffb74d; color: #000; transition: all 0.3s;">
+                        Generate 7-Day Projection
+                    </button>
+                    
+                    <div id="sim-status" style="margin-top: 10px; font-size: 0.75em; color: #03dac6; display: none;">
+                        🧬 Calibrating Digital Twin...
+                    </div>
                 </div>
 
                 <div class="card">
@@ -157,11 +169,13 @@
 
         async function runSimulation() {
             const btn = document.getElementById('sim-btn');
+            const status = document.getElementById('sim-status');
             const eventType = document.getElementById('event-type').value;
             const originalText = btn.innerText;
             
             btn.innerText = "Simulating...";
             btn.disabled = true;
+            status.style.display = 'block';
 
             const events = [];
             if (eventType === 'meal') {
@@ -195,7 +209,17 @@
 
                     // Add trace to existing chart
                     Plotly.addTraces('chart', [simTrace]);
+                    
+                    // Auto-zoom to 1-week window ending at the end of the simulation
+                    const lastDate = new Date(simDates[simDates.length - 1]);
+                    const startDate = new Date(lastDate.getTime() - (7 * 24 * 60 * 60 * 1000));
+                    
+                    Plotly.relayout('chart', {
+                        'xaxis.range': [startDate.toISOString(), lastDate.toISOString()]
+                    });
+
                     btn.innerText = "Forecast Added";
+                    status.innerText = "✅ MSDT Projection Successful";
                 } else {
                     alert("Simulation failed: " + data.message);
                     btn.innerText = originalText;
@@ -206,6 +230,7 @@
                 btn.innerText = originalText;
             } finally {
                 btn.disabled = false;
+                setTimeout(() => { status.style.display = 'none'; }, 3000);
             }
         }
     </script>
