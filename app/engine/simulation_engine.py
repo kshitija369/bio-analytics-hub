@@ -46,18 +46,25 @@ class SimulationEngine:
         late_meal = any([e.get('event') == 'meal' and '21:00' < str(e.get('time', '00:00')) for e in prospective_events])
 
         # 3. Apply Physiological Shifts
-        # HRV Delta
-        hrv_delta = (nature_time / 15 * 1.5) + (meditation_time / 10 * 1.0) + (5.0 if cold_plunge else 0)
-        hrv_delta -= (alcohol_drinks * 6.0) + (8.0 if late_meal else 0)
+        # HRV Delta (Positive = Higher HRV = Better)
+        hrv_buffer_gain = (nature_time / 15 * 1.5) + (meditation_time / 10 * 1.0) + (5.0 if cold_plunge else 0)
+        hrv_stressor_loss = (alcohol_drinks * 6.0) + (8.0 if late_meal else 0)
+        hrv_delta = hrv_buffer_gain - hrv_stressor_loss
         
-        # HR Delta & Dip Shift (Late meal/Alcohol delays the dip)
-        hr_delta = (alcohol_drinks * 5.0) + (4.0 if late_meal else 0)
-        dip_delay_hours = (alcohol_drinks * 0.5) + (1.5 if late_meal else 0)
+        # HR Delta (Negative = Lower HR = Better)
+        hr_buffer_gain = (nature_time / 15 * 1.0) + (meditation_time / 10 * 0.5) + (2.0 if cold_plunge else 0)
+        hr_stressor_loss = (alcohol_drinks * 5.0) + (4.0 if late_meal else 0)
+        hr_delta = hr_stressor_loss - hr_buffer_gain
+
+        # Dip Shift (Negative delay = Accelerated Recovery)
+        dip_acceleration = (nature_time / 60 * 0.5) + (1.0 if cold_plunge else 0)
+        dip_delay = (alcohol_drinks * 0.5) + (1.5 if late_meal else 0)
+        dip_shift = dip_delay - dip_acceleration
 
         # 4. Generate Trajectory (Hammock Curve)
         # We simulate a 24h curve where the 'dip' typically happens at T+6 hours
         t_hours = np.linspace(0, 24, len(idx))
-        dip_center = 6.0 + dip_delay_hours
+        dip_center = 6.0 + dip_shift
         
         # Gaussian 'Hammock' shape for HR
         hammock = -5.0 * np.exp(-((t_hours - dip_center)**2) / (2 * 3.0**2))
