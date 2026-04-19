@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import List, Dict, Any, Optional
 
 # New: GCP Healthcare API imports (deferred to keep local mode fast)
-# from google.cloud import healthcare_v1
+# from googleapiclient import discovery
 
 DB_FILE = "Bio_Analytics_Hub.sqlite" # Local fallback
 
@@ -178,8 +178,9 @@ class BiometricDatabase:
         if observations:
             print(f"--- [DT4H-Sim] Sample Observation Created: {json.dumps(observations[0], indent=2)} ---")
         
-        # Future: Stream to GCP Healthcare API using healthcare_v1
-        # fhir_client.create_resource(parent=self.fhir_store_path, type="Observation", body=obs)
+        # Future: Stream to GCP Healthcare API using googleapiclient
+        # service = discovery.build('healthcare', 'v1')
+        # service.projects().locations().datasets().fhirStores().fhir().create(parent=self.fhir_store_path, type='Observation', body=obs).execute()
 
     def insert_experiment_results(self, entries: List[Dict[str, Any]]):
         self._ensure_initialized()
