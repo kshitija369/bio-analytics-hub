@@ -3,6 +3,14 @@ from typing import List, Dict, Any
 from datetime import datetime
 
 class AppleHealthProvider(BiometricProvider):
+    # New: LOINC Mappings for DT4H-Sim FHIR Compliance
+    LOINC_MAP = {
+        "heart_rate": "8867-4",
+        "heart_rate_variability": "80404-7",
+        "mindful_minutes": "61150-9",   # Mindfulness duration
+        "sleep_score": "70182-1"        # Sleep quality proxy
+    }
+
     def fetch_data(self, start_time: datetime, end_time: datetime) -> List[Dict[str, Any]]:
         """Apple Health is push-based via webhooks, so fetch_data is not used for ingestion."""
         return []
@@ -45,6 +53,7 @@ class AppleHealthProvider(BiometricProvider):
                             "val": float(val),
                             "unit": units,
                             "source": "AppleWatch_v9",
-                            "tag": "Recovery" if metric_name == 'mindful_minutes' else "baseline"
+                            "tag": "Recovery" if metric_name == 'mindful_minutes' else "baseline",
+                            "loinc": self.LOINC_MAP.get(db_metric)
                         })
         return standardized

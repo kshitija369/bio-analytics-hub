@@ -1,11 +1,13 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from ..engine.registry import ExperimentRegistry
 from ..engine.research_coordinator import ResearchCoordinator
+from ..engine.simulation_engine import SimulationEngine
 from typing import List, Dict, Any
 
 router = APIRouter()
 _registry = ExperimentRegistry()
 _coordinator = ResearchCoordinator()
+_sim_engine = SimulationEngine()
 
 @router.get("/", tags=["Research API"])
 async def list_experiments() -> List[Dict[str, Any]]:
@@ -47,3 +49,37 @@ async def get_results(experiment_id: str, start: str = None, end: str = None) ->
     start_dt = date.fromisoformat(start) if start else None
     end_dt = date.fromisoformat(end) if end else None
     return _coordinator.get_experiment_results(experiment_id, start_dt, end_dt)
+
+@router.post("/{experiment_id}/simulate", tags=["Predictive Sandbox"])
+async def simulate_future(experiment_id: str, request: Request):
+    """
+    ### DT4H-Sim: Generate Synthetic Trajectory
+    Accepts prospective events and returns a predicted 24-hour physiological trajectory.
+    """
+    payload = await request.json()
+    events = payload.get("events", [])
+    
+    # 1. Fetch recent history for baseline
+    from datetime import datetime, timedelta
+    from app.domain.dimension_repository import DimensionRepository
+    repo = DimensionRepository()
+    
+    now = datetime.now()
+    history = repo.get_dimension_data("HeartRate", now - timedelta(days=7), now)
+    
+    # 2. Run Simulation
+    synthetic_df = _sim_engine.predict_next_24h(history, events)
+    
+    if synthetic_df.empty:
+        return {"status": "error", "message": "Insufficient history for simulation"}
+        
+    # 3. Format for UI
+    synthetic_df['ts'] = synthetic_df.index.map(lambda x: x.isoformat())
+    # Convert index to column for dict conversion
+    results = synthetic_df.reset_index().rename(columns={'index':'timestamp'}).to_dict(orient="records")
+    
+    return {
+        "status": "success",
+        "experiment_id": experiment_id,
+        "prediction": results
+    }

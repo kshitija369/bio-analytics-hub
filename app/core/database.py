@@ -1,8 +1,12 @@
 import sqlite3
 import os
 import shutil
+import json
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
+
+# New: GCP Healthcare API imports (deferred to keep local mode fast)
+# from google.cloud import healthcare_v1
 
 DB_FILE = "Bio_Analytics_Hub.sqlite" # Local fallback
 
@@ -17,6 +21,10 @@ class BiometricDatabase:
         # 2. persistent_db: The FUSE mount at /app/data for backup
         self.working_db = working_db or "/tmp/Bio_Analytics_Hub_Working.sqlite"
         self.persistent_db = "/app/data/Bio_Analytics_Hub.sqlite"
+        
+        # New: DT4H-Sim FHIR Configuration
+        self.use_fhir = os.environ.get("USE_FHIR", "false").lower() == "true"
+        self.fhir_store_path = os.environ.get("GCP_FHIR_STORE_PATH") # e.g. projects/P/locations/L/datasets/D/fhirStores/S
 
     def _ensure_initialized(self):
         if self._initialized:
@@ -32,6 +40,8 @@ class BiometricDatabase:
             self.persistent_db = DB_FILE
 
         print(f"--- [DB DEBUG] Working: {self.working_db}, Persistent: {self.persistent_db} ---")
+        if self.use_fhir:
+            print(f"--- [DT4H-Sim] FHIR Mode Enabled: {self.fhir_store_path} ---")
 
         # 2. Restore from Persistence if available (and on GCP)
         if self.working_db != self.persistent_db and os.path.exists(self.persistent_db):
@@ -102,12 +112,74 @@ class BiometricDatabase:
 
     def insert_biometrics(self, entries: List[Dict[str, Any]]):
         self._ensure_initialized()
+        
+        # 1. SQL Sync (Legacy support/Local cache)
         with sqlite3.connect(self.working_db) as conn:
             conn.executemany("""
                 INSERT OR REPLACE INTO biometrics (ts, metric, val, unit, source, tag)
                 VALUES (:ts, :metric, :val, :unit, :source, :tag)
             """, entries)
         self._flush_to_persistence()
+
+        # 2. FHIR Sync (Clinical Grade DT4H-Sim)
+        if self.use_fhir:
+            self._ingest_to_fhir(entries)
+
+    def _ingest_to_fhir(self, entries: List[Dict[str, Any]]):
+        """
+        Translates raw biometric entries into FHIR R4 Observations
+        and simulates streaming to the GCP Healthcare API.
+        """
+        print(f"--- [DT4H-Sim] Constructing {len(entries)} FHIR Observations ---")
+        
+        observations = []
+        for entry in entries:
+            # Construct a standard FHIR R4 Observation resource
+            obs = {
+                "resourceType": "Observation",
+                "status": "final",
+                "category": [
+                    {
+                        "coding": [
+                            {
+                                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                                "code": "vital-signs",
+                                "display": "Vital Signs"
+                            }
+                        ]
+                    }
+                ],
+                "code": {
+                    "coding": [
+                        {
+                            "system": "http://loinc.org",
+                            "code": entry.get("loinc", "unknown"),
+                            "display": entry.get("metric")
+                        }
+                    ]
+                },
+                "subject": {
+                    "reference": "Patient/DT4H-Sim-Avatar-001"
+                },
+                "effectiveDateTime": entry.get("ts"),
+                "valueQuantity": {
+                    "value": entry.get("val"),
+                    "unit": entry.get("unit"),
+                    "system": "http://unitsofmeasure.org",
+                    "code": entry.get("unit")
+                },
+                "device": {
+                    "display": entry.get("source")
+                }
+            }
+            observations.append(obs)
+        
+        # Simulation: Print the first observation for verification
+        if observations:
+            print(f"--- [DT4H-Sim] Sample Observation Created: {json.dumps(observations[0], indent=2)} ---")
+        
+        # Future: Stream to GCP Healthcare API using healthcare_v1
+        # fhir_client.create_resource(parent=self.fhir_store_path, type="Observation", body=obs)
 
     def insert_experiment_results(self, entries: List[Dict[str, Any]]):
         self._ensure_initialized()
