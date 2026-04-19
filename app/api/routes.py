@@ -210,6 +210,31 @@ async def refresh_all_experiments(request: Request, redirect_to: str = "/experim
             
     return RedirectResponse(url=redirect_to)
 
+@router.get("/experiments/migrate", tags=["System Diagnostics"])
+async def migrate_experiment_data():
+    """
+    ### Data Migration: NAR -> SRI
+    Renames all historical records from EXP-NAR-001 to EXP-SRI-001.
+    """
+    db = get_db()
+    db._ensure_initialized()
+    import sqlite3
+    try:
+        with sqlite3.connect(db.db_path) as conn:
+            # 1. Update research_results table
+            res1 = conn.execute("UPDATE research_results SET experiment_id = 'EXP-SRI-001' WHERE experiment_id = 'EXP-NAR-001'")
+            # 2. Update experiment_results table
+            res2 = conn.execute("UPDATE experiment_results SET experiment_id = 'EXP-SRI-001' WHERE experiment_id = 'EXP-NAR-001'")
+            conn.commit()
+            return {
+                "status": "success", 
+                "message": "Migration complete", 
+                "research_updated": res1.rowcount,
+                "experiments_updated": res2.rowcount
+            }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/test-oura", tags=["System Diagnostics"])
 async def test_oura_connectivity():
     """
