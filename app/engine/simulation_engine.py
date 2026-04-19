@@ -16,38 +16,59 @@ class SimulationEngine:
 
     def predict_next_24h(self, history_df: pd.DataFrame, prospective_events: List[Dict[str, Any]]) -> pd.DataFrame:
         """
-        Generates a synthetic 24-hour trajectory based on historical 
-        FHIR observations and planned events (e.g. late meals, travel).
+        Generates a synthetic 24-hour trajectory using vector-based modeling.
+        Focuses on the 'Hammock Curve' dip timing and magnitude.
         """
-        print(f"--- [MSDT Engine] Simulating next 24h for {self.experiment_id} ---")
+        print(f"--- [MSDT Engine] Simulating vector-based 24h for {self.experiment_id} ---")
         
         if history_df.empty:
             return pd.DataFrame()
 
-        # Implementation will call Vertex AI Bayesian Filter
-        # For now, we generate a placeholder synthetic trend based on the last observed mean
+        # 1. Establish Baseline (The 'Twin' state)
         last_ts = history_df.index.max()
-        synthetic_start = last_ts + timedelta(minutes=1)
+        synthetic_start = last_ts + timedelta(minutes=15)
         synthetic_end = synthetic_start + timedelta(hours=24)
         
-        # Create a 1-minute frequency index for the synthetic day
-        idx = pd.date_range(start=synthetic_start, end=synthetic_end, freq='1min')
+        # Internal Resolution: 15-minute epochs
+        idx = pd.date_range(start=synthetic_start, end=synthetic_end, freq='15min')
         
-        # Generate 'Synthetic' Heart Rate based on historical mean with some noise
         base_hr = history_df['heart_rate'].mean() if 'heart_rate' in history_df.columns else 60.0
-        
-        # Apply penalties based on prospective events (e.g. late meal increases nightly HR)
-        hr_modifier = 0.0
-        for event in prospective_events:
-            if event.get('event') == 'meal' and '22:00' in str(event.get('time')):
-                hr_modifier += 5.0 # Late meal penalty
-                print("  [MSDT Engine] Applying Late Meal penalty (+5 BPM)")
+        base_hrv = history_df['heart_rate_variability'].mean() if 'heart_rate_variability' in history_df.columns else 50.0
 
-        synthetic_hr = np.random.normal(base_hr + hr_modifier, 2.0, len(idx))
+        # 2. Calculate Vectors
+        # Positive Vectors (Buffers)
+        nature_time = sum([e.get('duration_mins', 0) for e in prospective_events if e.get('event') == 'nature'])
+        meditation_time = sum([e.get('duration_mins', 0) for e in prospective_events if e.get('event') == 'meditation'])
+        cold_plunge = any([e.get('event') == 'cold_exposure' for e in prospective_events])
         
-        # Create Synthetic DataFrame
+        # Negative Vectors (Stressors)
+        alcohol_drinks = sum([e.get('drinks', 0) for e in prospective_events if e.get('event') == 'alcohol'])
+        late_meal = any([e.get('event') == 'meal' and '21:00' < str(e.get('time', '00:00')) for e in prospective_events])
+
+        # 3. Apply Physiological Shifts
+        # HRV Delta
+        hrv_delta = (nature_time / 15 * 1.5) + (meditation_time / 10 * 1.0) + (5.0 if cold_plunge else 0)
+        hrv_delta -= (alcohol_drinks * 6.0) + (8.0 if late_meal else 0)
+        
+        # HR Delta & Dip Shift (Late meal/Alcohol delays the dip)
+        hr_delta = (alcohol_drinks * 5.0) + (4.0 if late_meal else 0)
+        dip_delay_hours = (alcohol_drinks * 0.5) + (1.5 if late_meal else 0)
+
+        # 4. Generate Trajectory (Hammock Curve)
+        # We simulate a 24h curve where the 'dip' typically happens at T+6 hours
+        t_hours = np.linspace(0, 24, len(idx))
+        dip_center = 6.0 + dip_delay_hours
+        
+        # Gaussian 'Hammock' shape for HR
+        hammock = -5.0 * np.exp(-((t_hours - dip_center)**2) / (2 * 3.0**2))
+        synthetic_hr = base_hr + hr_delta + hammock + np.random.normal(0, 0.5, len(idx))
+        
+        # Inverse for HRV (Higher is better, usually peaks when HR dips)
+        hrv_curve = base_hrv + hrv_delta + (-hammock * 1.5) + np.random.normal(0, 1.0, len(idx))
+
         synthetic_df = pd.DataFrame(index=idx)
         synthetic_df['heart_rate'] = synthetic_hr
+        synthetic_df['heart_rate_variability'] = hrv_curve
         synthetic_df['is_synthetic'] = 1
         synthetic_df['state_label'] = 'Predicted'
         

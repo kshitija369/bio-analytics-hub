@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>{{ protocol.name }} | Witness Lab</title>
+    <title>{{ protocol.name }} | Biometric Lab</title>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <style>
         body { background: #0a0a0a; color: #e0e0e0; font-family: 'JetBrains Mono', monospace; padding: 20px; }
@@ -15,6 +15,10 @@
         table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
         th, td { padding: 10px; text-align: left; border-bottom: 1px solid #333; }
         th { color: #03dac6; }
+        select, button { width: 100%; padding: 8px; margin-top: 5px; border-radius: 4px; border: 1px solid #444; background: #222; color: #fff; }
+        button { background: #ffb74d; color: #000; font-weight: bold; cursor: pointer; border: none; margin-top: 15px; }
+        button:hover { background: #ffa726; }
+        .sidebar-sublabel { font-size: 0.7em; color: #888; display: block; margin-top: 10px; text-transform: uppercase; }
     </style>
 </head>
 <body>
@@ -25,7 +29,7 @@
                 <p style="color: #888;">{{ protocol.id }} | {{ protocol.hypothesis }}</p>
             </div>
             <div>
-                <a href="/experiments/refresh?redirect_to=/experiments/{{ protocol.id }}" class="btn" style="background: #03dac6; margin-right: 15px;">Sync & Refresh</a>
+                <a href="/experiments/refresh?redirect_to=/experiments/{{ protocol.id }}" class="btn" style="background: #03dac6; padding: 8px 15px; text-decoration: none; color: #000; border-radius: 4px; font-weight: bold; margin-right: 15px;">Sync & Refresh</a>
                 <a href="/experiments" style="color: #bb86fc;">&larr; Back to Hub</a>
             </div>
         </div>
@@ -43,13 +47,13 @@
                         <thead>
                             <tr>
                                 <th>Date</th>
-                                <th>High-Res (Avg)</th>
-                                <th>Daily Score</th>
-                                {% if protocol.id == "EXP-NAR-001" %}
-                                    <th>Z-Score</th>
-                                    <th>Dip Offset (hr)</th>
+                                <th>Overnight Metric (Avg)</th>
+                                <th>Morning Score</th>
+                                {% if protocol.id == "EXP-SRI-001" %}
+                                    <th>Baseline Delta (Z)</th>
+                                    <th>Sleep Efficiency (Dip)</th>
                                 {% else %}
-                                    <th>Residual</th>
+                                    <th>Variance</th>
                                 {% endif %}
                             </tr>
                         </thead>
@@ -59,7 +63,7 @@
                                 <td>{{ r.ts }}</td>
                                 <td>{{ r.metadata.ind_val|round(1) }}</td>
                                 <td>{{ r.metadata.dep_val|round(1) }}</td>
-                                {% if protocol.id == "EXP-NAR-001" %}
+                                {% if protocol.id == "EXP-SRI-001" %}
                                     <td style="color: {{ '#03dac6' if r.metadata.z_score > 0 else '#cf6679' }}">{{ r.metadata.z_score|round(2) }}</td>
                                     <td style="color: {{ '#cf6679' if r.metadata.circadian > 0 else '#03dac6' }}">{{ r.metadata.circadian|round(2) }}</td>
                                 {% else %}
@@ -75,44 +79,40 @@
             <div class="sidebar">
                 <!-- DT4H-Sim: Predictive Sandbox -->
                 <div class="card" style="border-color: #ffb74d;">
-                    <div class="label" style="color: #ffb74d;">Predictive Sandbox (MSDT)</div>
-                    <p style="font-size: 0.85em; margin-bottom: 15px; color: #ccc;">
-                        <strong>Phase 2 Simulation:</strong> Model how lifestyle interventions impact your recovery trajectory. 
-                        Choose an event below to project its effect on your autonomic balance.
-                    </p>
+                    <div class="label" style="color: #ffb74d;">Predictive Sandbox (Digital Twin)</div>
+                    <p style="font-size: 0.8em; color: #ccc; margin-top: 10px;">Model how stressors and buffers compound to alter your recovery curve.</p>
                     
-                    <label style="font-size: 0.7em; color: #888; display: block; margin-bottom: 5px;">PROSPECTIVE EVENT</label>
-                    <select id="event-type" style="width: 100%; background: #222; color: #fff; border: 1px solid #444; padding: 8px; margin-bottom: 15px; border-radius: 4px;">
-                        <option value="meal">Late Night Meal (High Carb, 22:00)</option>
-                        <option value="travel">Cross-timezone Travel (Jet Lag)</option>
-                        <option value="workout">Intense PM Workout (Sympathetic)</option>
+                    <span class="sidebar-sublabel">Stressors (Negative)</span>
+                    <select id="stressor-type">
+                        <option value="none">None</option>
+                        <option value="alcohol">Alcohol (2+ Drinks)</option>
+                        <option value="late_meal">Late Night Pizza (22:00)</option>
+                    </select>
+
+                    <span class="sidebar-sublabel">Buffers (Positive)</span>
+                    <select id="buffer-type">
+                        <option value="none">None</option>
+                        <option value="nature">Nature Fix (60m Hike)</option>
+                        <option value="cold">Cold Plunge (Hormetic)</option>
                     </select>
                     
-                    <button onclick="runSimulation()" id="sim-btn" class="btn" style="width: 100%; background: #ffb74d; color: #000; transition: all 0.3s;">
-                        Generate 7-Day Projection
-                    </button>
-                    
-                    <div id="sim-status" style="margin-top: 10px; font-size: 0.75em; color: #03dac6; display: none;">
-                        🧬 Calibrating Digital Twin...
-                    </div>
+                    <button onclick="runSimulation()" id="sim-btn">Generate 7-Day Projection</button>
+                    <div id="sim-status" style="margin-top: 10px; font-size: 0.75em; color: #03dac6; display: none;">🧬 Calibrating Vectors...</div>
                 </div>
 
                 <div class="card">
-                    <div class="card">
-                        <div class="label">Study Strength</div>
-                        <div class="metric-val">{{ metrics.correlation }}</div>
-                        <p><small>{{ metrics.status }}</small></p>
-                    </div>
-                    <div class="card">
-                        <div class="label">Average Variation</div>
-                        <div class="metric-val">{{ metrics.mae }}</div>
-                    </div>
-                    <div class="card">
-                        <div class="label">Study Context</div>
-
-                    <p><small>Ind: {{ protocol.independent_variables[0].dimension }}</small></p>
-                    <p><small>Dep: {{ protocol.dependent_variables[0].dimension }}</small></p>
-                    <p><small>Window: {{ protocol.independent_variables[0].window.start_hour }}:00 - {{ protocol.independent_variables[0].window.end_hour }}:00</small></p>
+                    <div class="label">Study Strength</div>
+                    <div class="metric-val">{{ metrics.correlation }}</div>
+                    <p><small>{{ metrics.status }}</small></p>
+                </div>
+                <div class="card">
+                    <div class="label">Average Variation</div>
+                    <div class="metric-val">{{ metrics.mae }}</div>
+                </div>
+                <div class="card">
+                    <div class="label">Study Context</div>
+                    <p><small>Primary: {{ protocol.independent_variables[0].dimension }}</small></p>
+                    <p><small>Target: {{ protocol.dependent_variables[0].dimension }}</small></p>
                 </div>
             </div>
         </div>
@@ -127,7 +127,7 @@
         const trace1 = {
             x: dates,
             y: indVals,
-            name: 'High-Res Dimension',
+            name: 'Overnight Recovery',
             type: 'scatter',
             mode: 'lines+markers',
             line: {color: '#bb86fc', width: 3}
@@ -136,7 +136,7 @@
         const trace2 = {
             x: dates,
             y: depVals,
-            name: 'Daily Aggregate',
+            name: 'Morning Readiness',
             type: 'scatter',
             mode: 'lines+markers',
             line: {color: '#03dac6', width: 3}
@@ -171,7 +171,8 @@
         async function runSimulation() {
             const btn = document.getElementById('sim-btn');
             const status = document.getElementById('sim-status');
-            const eventType = document.getElementById('event-type').value;
+            const stressor = document.getElementById('stressor-type').value;
+            const buffer = document.getElementById('buffer-type').value;
             const originalText = btn.innerText;
             
             btn.innerText = "Simulating...";
@@ -179,13 +180,10 @@
             status.style.display = 'block';
 
             const events = [];
-            if (eventType === 'meal') {
-                events.push({event: "meal", time: "22:00", intensity: "high_carb"});
-            } else if (eventType === 'travel') {
-                events.push({event: "travel", destination: "GMT+5", duration: "8h"});
-            } else {
-                events.push({event: "workout", intensity: "max", duration: "1h"});
-            }
+            if (stressor === 'alcohol') events.push({event: "alcohol", drinks: 3});
+            if (stressor === 'late_meal') events.push({event: "meal", time: "22:30"});
+            if (buffer === 'nature') events.push({event: "nature", duration_mins: 60});
+            if (buffer === 'cold') events.push({event: "cold_exposure"});
 
             try {
                 const response = await fetch(`/api/v1/experiments/{{ protocol.id }}/simulate`, {
@@ -208,37 +206,23 @@
                         line: {color: '#ffb74d', width: 3, dash: 'dash'}
                     };
 
-                    // Add trace to existing chart
                     Plotly.addTraces('chart', [simTrace]);
                     
-                    // Auto-zoom to 1-week window ending at the end of the simulation
                     const lastDate = new Date(simDates[simDates.length - 1]);
                     const startDate = new Date(lastDate.getTime() - (7 * 24 * 60 * 60 * 1000));
-                    
-                    Plotly.relayout('chart', {
-                        'xaxis.range': [startDate.toISOString(), lastDate.toISOString()]
-                    });
+                    Plotly.relayout('chart', { 'xaxis.range': [startDate.toISOString(), lastDate.toISOString()] });
 
                     btn.innerText = "Forecast Added";
-                    status.innerText = "✅ MSDT Projection Successful";
-                } else {
-                    alert("Simulation failed: " + data.message);
-                    btn.innerText = originalText;
+                    status.innerText = "✅ Projection Successful";
                 }
             } catch (e) {
                 console.error(e);
                 alert("Error connecting to MSDT Engine.");
-                btn.innerText = originalText;
             } finally {
                 btn.disabled = false;
-                setTimeout(() => { status.style.display = 'none'; }, 3000);
+                setTimeout(() => { status.style.display = 'none'; btn.innerText = originalText; }, 3000);
             }
         }
     </script>
-</body>
-</html>
-ody>
-</html>
-cript>
 </body>
 </html>
