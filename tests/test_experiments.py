@@ -27,7 +27,7 @@ class TestExperimentEngine(unittest.TestCase):
             if os.path.exists(db):
                 os.remove(db)
 
-    def test_nar_evaluation_with_baseline(self):
+    def test_sri_evaluation_with_baseline(self):
         target_date = date.today()
         
         # 1. Insert 7 days of historical HRV baseline data
@@ -66,8 +66,8 @@ class TestExperimentEngine(unittest.TestCase):
             "unit": "score", "source": "Mock", "tag": "daily_insight"
         }])
 
-        # 4. Run NAR Evaluation
-        result = self.manager.evaluate_experiment_for_date("EXP-NAR-001", target_date)
+        # 4. Run SRI Evaluation
+        result = self.manager.evaluate_experiment_for_date("EXP-SRI-001", target_date)
 
         # 5. Assertions
         self.assertIsNotNone(result)
@@ -81,7 +81,7 @@ class TestExperimentEngine(unittest.TestCase):
         self.db._ensure_initialized()
         import sqlite3
         conn = sqlite3.connect(self.test_working_db)
-        row = conn.execute("SELECT * FROM research_results WHERE experiment_id = ?", ("EXP-NAR-001",)).fetchone()
+        row = conn.execute("SELECT * FROM research_results WHERE experiment_id = ?", ("EXP-SRI-001",)).fetchone()
         self.assertIsNotNone(row)
         self.assertEqual(row[1], target_date.isoformat())
         self.assertEqual(row[3], 95.0) # dependent_value

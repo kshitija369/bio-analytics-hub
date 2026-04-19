@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Witness Research Hub</title>
+    <title>Biometric Research Hub</title>
     <style>
         body { background: #0a0a0a; color: #e0e0e0; font-family: 'JetBrains Mono', monospace; padding: 40px; }
         h1 { color: #bb86fc; border-bottom: 2px solid #3700b3; padding-bottom: 10px; }
@@ -18,7 +18,7 @@
 </head>
 <body>
     <div style="display: flex; justify-content: space-between; align-items: center;">
-        <h1>Agnostic Biometric Research Hub</h1>
+        <h1>Personal Biometric Hub</h1>
         <a href="/experiments/refresh?redirect_to=/experiments/" class="btn" style="background: #03dac6;">Refresh All Data</a>
     </div>
 
@@ -26,21 +26,21 @@
     <div style="background: #1a1a1a; padding: 20px; border: 1px solid #3700b3; border-radius: 8px; margin-bottom: 30px; display: flex; align-items: center; gap: 40px;">
         <div style="text-align: center;">
             <div style="font-size: 3em;">🧬</div>
-            <div style="font-size: 0.8em; color: #888; margin-top: 5px;">Active MSDT</div>
+            <div style="font-size: 0.8em; color: #888; margin-top: 5px;">Active Simulation</div>
         </div>
         <div style="flex-grow: 1;">
-            <h3 style="margin-top: 0; color: #bb86fc;">Multi-Scale Digital Twin (Avatar-001)</h3>
+            <h3 style="margin-top: 0; color: #bb86fc;">Digital Twin Analysis (Avatar-001)</h3>
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
                 <div>
-                    <div style="font-size: 0.8em; color: #888;">CHRONO AGE</div>
+                    <div style="font-size: 0.8em; color: #888;">CHRONOLOGICAL AGE</div>
                     <div style="font-size: 1.5em; font-weight: bold;">38.2</div>
                 </div>
                 <div>
-                    <div style="font-size: 0.8em; color: #888;">BIOLOGICAL AGE (BIO-X)</div>
+                    <div style="font-size: 0.8em; color: #888;">BIOLOGICAL AGE</div>
                     <div style="font-size: 1.5em; font-weight: bold; color: #03dac6;">34.8</div>
                 </div>
                 <div>
-                    <div style="font-size: 0.8em; color: #888;">90-DAY DEVIATION</div>
+                    <div style="font-size: 0.8em; color: #888;">RECOVERY DEVIATION</div>
                     <div style="font-size: 1.5em; font-weight: bold; color: #ffb74d;">-3.4 yrs</div>
                 </div>
             </div>
@@ -52,11 +52,11 @@
     <table>
         <thead>
             <tr>
-                <th>ID</th>
-                <th>Experiment Name</th>
-                <th>Status</th>
-                <th>Primary Metrics</th>
-                <th>Correlation (r)</th>
+                <th>Reference ID</th>
+                <th>Research Protocol</th>
+                <th>Current Status</th>
+                <th>Primary Dimensions</th>
+                <th>Study Strength</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -68,7 +68,7 @@
                     <strong>{{ exp.name }}</strong><br>
                     <small style="color: #888;">{{ exp.hypothesis[:80] }}...</small>
                 </td>
-                <td class="status-active">{{ exp.status }}</td>
+                <td class="status-active">Ongoing</td>
                 <td>
                     {% for v in exp.independent_variables %}
                         <span class="metric-badge">{{ v.dimension }}</span>
@@ -82,7 +82,7 @@
                     {% endif %}
                 </td>
                 <td>
-                    <a href="/experiments/{{ exp.id }}" class="btn">View Laboratory</a>
+                    <a href="/experiments/{{ exp.id }}" class="btn">View Study Details</a>
                 </td>
             </tr>
             {% endfor %}
@@ -90,5 +90,3 @@
     </table>
 </body>
 </html>
->
-

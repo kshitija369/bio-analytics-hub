@@ -70,8 +70,8 @@ def test_dt4h_sim_full_lifecycle():
             {"event": "meal", "time": "22:00", "intensity": "high_carb"}
         ]
     }
-    # Test the simulation endpoint for EXP-NAR-001
-    response = client.post("/api/v1/experiments/EXP-NAR-001/simulate", json=sim_payload)
+    # Test the simulation endpoint for EXP-SRI-001
+    response = client.post("/api/v1/experiments/EXP-SRI-001/simulate", json=sim_payload)
     
     assert response.status_code == 200
     res_json = response.json()

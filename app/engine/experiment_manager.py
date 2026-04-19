@@ -45,9 +45,9 @@ class ExperimentManager:
             return None
         
         # Dispatch based on experiment type or ID
-        if experiment_id == "EXP-NAR-001":
-            from .nar_evaluator import NAREvaluator
-            evaluator = NAREvaluator(db=self.db)
+        if experiment_id == "EXP-SRI-001":
+            from .sleep_recovery_evaluator import SleepRecoveryEvaluator
+            evaluator = SleepRecoveryEvaluator(db=self.db)
             res = evaluator.evaluate(target_date)
             if res and res.get('status') == 'success':
                 self._log_provenance(experiment_id, res)

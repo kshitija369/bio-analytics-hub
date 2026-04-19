@@ -98,17 +98,18 @@
                 </div>
 
                 <div class="card">
-                    <div class="label">Study Strength (r)</div>
+                    <div class="card">
+                        <div class="label">Study Strength</div>
+                        <div class="metric-val">{{ metrics.correlation }}</div>
+                        <p><small>{{ metrics.status }}</small></p>
+                    </div>
+                    <div class="card">
+                        <div class="label">Average Variation</div>
+                        <div class="metric-val">{{ metrics.mae }}</div>
+                    </div>
+                    <div class="card">
+                        <div class="label">Study Context</div>
 
-                    <div class="metric-val">{{ metrics.correlation }}</div>
-                    <p><small>{{ metrics.status }}</small></p>
-                </div>
-                <div class="card">
-                    <div class="label">Mean Abs Error</div>
-                    <div class="metric-val">{{ metrics.mae }}</div>
-                </div>
-                <div class="card">
-                    <div class="label">Study Metadata</div>
                     <p><small>Ind: {{ protocol.independent_variables[0].dimension }}</small></p>
                     <p><small>Dep: {{ protocol.dependent_variables[0].dimension }}</small></p>
                     <p><small>Window: {{ protocol.independent_variables[0].window.start_hour }}:00 - {{ protocol.independent_variables[0].window.end_hour }}:00</small></p>

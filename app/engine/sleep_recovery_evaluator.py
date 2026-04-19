@@ -6,12 +6,12 @@ from typing import Optional, Dict, Any
 from app.domain.dimension_repository import DimensionRepository
 from app.core.database import BiometricDatabase
 
-class NAREvaluator:
+class SleepRecoveryEvaluator:
     """
-    NAR: Nocturnal Autonomic Recovery & Readiness Correlation.
-    Implements Z-Score Normalization and Circadian Dip calculation.
+    Sleep Recovery Index (SRI).
+    Implements Baseline Normalization and Circadian Dip calculation.
     """
-    EXPERIMENT_ID = "EXP-NAR-001"
+    EXPERIMENT_ID = "EXP-SRI-001"
 
     def __init__(self, db: Optional[BiometricDatabase] = None):
         self.db = db or BiometricDatabase()
@@ -19,9 +19,10 @@ class NAREvaluator:
 
     def evaluate(self, morning_date: date) -> Dict[str, Any]:
         """
-        Main entry point for NAR daily evaluation.
+        Main entry point for Sleep Recovery Index daily evaluation.
         """
-        print(f"--- [NAR] Running Evaluation for {morning_date} ---")
+        print(f"--- [Sleep Recovery Index] Running Evaluation for {morning_date} ---")
+
         
         # 1. Window: 22:30 (yesterday) to 07:30 (today)
         night_start = datetime.combine(morning_date - timedelta(days=1), time(22, 30))

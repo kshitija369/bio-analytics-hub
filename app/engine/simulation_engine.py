@@ -9,7 +9,7 @@ class SimulationEngine:
     Orchestrates Vertex AI models to generate 'Synthetic Days' 
     and Multi-Scale Digital Twin (MSDT) predictions.
     """
-    def __init__(self, experiment_id: str = "EXP-NAR-001"):
+    def __init__(self, experiment_id: str = "EXP-SRI-001"):
         self.experiment_id = experiment_id
         # Placeholder for Vertex AI configuration
         self.model_endpoint = "projects/P/locations/L/endpoints/E"

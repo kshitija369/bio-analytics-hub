@@ -75,8 +75,8 @@ def setup_test_environment(monkeypatch):
     import app.api.experiment_ui as exp_ui
     import app.api.experiment_api as exp_api
     import importlib
-    import app.engine.nar_evaluator
-    importlib.reload(app.engine.nar_evaluator)
+    import app.engine.sleep_recovery_evaluator
+    importlib.reload(app.engine.sleep_recovery_evaluator)
     
     mock_db_instance = MockBiometricDatabase()
     mock_db_instance._ensure_initialized()
@@ -162,12 +162,12 @@ def test_sync_with_mock_oura():
 def test_experiment_hub_ui():
     response = client.get("/experiments/")
     assert response.status_code == 200
-    assert "Agnostic Biometric Research Hub" in response.text
+    assert "Personal Biometric Hub" in response.text
 
 def test_experiment_detail_ui():
     # Insert mock result first
     mock_db_instance.insert_research_results([{
-        "experiment_id": "EXP-NAR-001",
+        "experiment_id": "EXP-SRI-001",
         "morning_date": "2026-04-11",
         "independent_value": 50.0,
         "dependent_value": 60.0,
@@ -175,9 +175,9 @@ def test_experiment_detail_ui():
         "circadian_alignment": -1.0,
         "subjective_rating": 5
     }])
-    response = client.get("/experiments/EXP-NAR-001")
+    response = client.get("/experiments/EXP-SRI-001")
     assert response.status_code == 200
-    assert "NAR: Nocturnal Autonomic Recovery" in response.text
+    assert "Sleep Recovery Index" in response.text
 
 def test_experiment_api_list():
     response = client.get("/api/v1/experiments/")
@@ -185,19 +185,19 @@ def test_experiment_api_list():
     data = response.json()
     assert len(data) > 0
     ids = [e["id"] for e in data]
-    assert "EXP-NAR-001" in ids
+    assert "EXP-SRI-001" in ids
 
 def test_experiment_results_date_filter():
     # Insert results for two different days
     mock_db_instance.insert_research_results([
         {
-            "experiment_id": "EXP-NAR-001",
+            "experiment_id": "EXP-SRI-001",
             "morning_date": "2026-04-01",
             "independent_value": 50.0, "dependent_value": 60.0,
             "z_score_deviation": 0.0, "circadian_alignment": 0.0, "subjective_rating": 5
         },
         {
-            "experiment_id": "EXP-NAR-001",
+            "experiment_id": "EXP-SRI-001",
             "morning_date": "2026-04-10",
             "independent_value": 70.0, "dependent_value": 80.0,
             "z_score_deviation": 1.0, "circadian_alignment": -1.0, "subjective_rating": 5
@@ -205,7 +205,7 @@ def test_experiment_results_date_filter():
     ])
     
     # Filter for only the second one
-    response = client.get("/api/v1/experiments/EXP-NAR-001/results?start=2026-04-05")
+    response = client.get("/api/v1/experiments/EXP-SRI-001/results?start=2026-04-05")
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 1
@@ -230,7 +230,7 @@ def test_evaluate_endpoint_days_back():
     }])
     
     today_str = date.today().isoformat()
-    response = client.get(f"/experiments/evaluate?experiment_id=EXP-NAR-001&target_date={today_str}&days_back=0")
+    response = client.get(f"/experiments/evaluate?experiment_id=EXP-SRI-001&target_date={today_str}&days_back=0")
     assert response.status_code == 200
     assert response.json()["status"] == "success"
 

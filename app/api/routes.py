@@ -204,7 +204,7 @@ async def refresh_all_experiments(request: Request, redirect_to: str = "/experim
     for i in range(3, -1, -1):
         eval_date = today - timedelta(days=i)
         try:
-            manager.evaluate_experiment_for_date("EXP-NAR-001", eval_date)
+            manager.evaluate_experiment_for_date("EXP-SRI-001", eval_date)
         except:
             pass
             

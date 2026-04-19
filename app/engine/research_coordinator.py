@@ -26,14 +26,14 @@ class ResearchCoordinator:
             params = [experiment_id]
             date_filter = ""
             if start_date:
-                date_filter += " AND morning_date >= ?" if experiment_id == "EXP-NAR-001" else " AND ts >= ?"
+                date_filter += " AND morning_date >= ?" if experiment_id == "EXP-SRI-001" else " AND ts >= ?"
                 params.append(start_date.isoformat())
             if end_date:
-                date_filter += " AND morning_date <= ?" if experiment_id == "EXP-NAR-001" else " AND ts <= ?"
+                date_filter += " AND morning_date <= ?" if experiment_id == "EXP-SRI-001" else " AND ts <= ?"
                 params.append(end_date.isoformat())
 
-            if experiment_id == "EXP-NAR-001":
-                query = f"SELECT morning_date as ts, 'NAR_Score' as metric, independent_value as val, morning_date, independent_value as ind_val, dependent_value as dep_val, z_score_deviation, circadian_alignment FROM research_results WHERE experiment_id = ? {date_filter} ORDER BY morning_date DESC"
+            if experiment_id == "EXP-SRI-001":
+                query = f"SELECT morning_date as ts, 'Recovery_Score' as metric, independent_value as val, morning_date, independent_value as ind_val, dependent_value as dep_val, z_score_deviation, circadian_alignment FROM research_results WHERE experiment_id = ? {date_filter} ORDER BY morning_date DESC"
                 rows = conn.execute(query, params).fetchall()
                 results = []
                 for row in rows:

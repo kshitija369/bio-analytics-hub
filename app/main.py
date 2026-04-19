@@ -8,8 +8,9 @@ app = FastAPI(
     Nocturnal Autonomic Research (NAR), and Longevity Frameworks.
 
     ### Key Features:
-    * **Research Engine**: Agnostic biometric dimensions (HRV, HeartRate) vs. Daily Aggregates.
-    * **NAR Study**: Nocturnal Autonomic Research & Readiness Correlation with Z-Score normalization.
+    * **Research Engine**: Agnostic biometric dimensions (Heart Rate, HRV) vs. Daily Aggregates.
+    * **Sleep Recovery Index**: Nightly autonomic research with baseline comparison and circadian alignment.
+
     * **Real-time Triggers**: Physiological prompts for high HR and low recovery states.
     * **Agnostic Ingestion**: Support for Oura V2 and Apple Health (Auto-Export).
     """,
