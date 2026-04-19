@@ -37,3 +37,15 @@ def send_to_watch(title, message, priority=0):
     except Exception as e:
         print(f"Exception during notification send: {e}")
         return False
+
+def send_bidirectional_nudge(title, message, callback_url=None):
+    """
+    DT4H-Sim/Secular-Witness: Phase 3.
+    Sends a nudge with interactive actions (Accept/Snooze/Reject).
+    """
+    print(f"--- [Notifier] Sending Bidirectional Nudge: {title} ---")
+    # In production, this would use WhatsApp Business or Slack with interactive blocks
+    # and provide a callback_url for the User's Human-in-the-Loop decision.
+    print(f"  [Notifier] Message: {message}")
+    print(f"  [Notifier] Waiting for HITL response at {callback_url}...")
+    return True

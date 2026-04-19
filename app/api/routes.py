@@ -18,7 +18,7 @@ def get_trigger_engine():
     global _trigger_engine
     if _trigger_engine is None:
         from ..core.alerts import BiometricTriggerEngine
-        _trigger_engine = BiometricTriggerEngine()
+        _trigger_engine = BiometricTriggerEngine(db=get_db())
     return _trigger_engine
 
 @router.post("/webhook/biometric-log", tags=["Ingestion"])
@@ -46,9 +46,11 @@ async def receive_apple_health_data(request: Request):
         if standardized_data:
             db.insert_biometrics(standardized_data)
             
-            # Evaluate real-time triggers
+            # Evaluate real-time triggers & anomalies
             for entry in standardized_data:
                 trigger_engine.evaluate(entry['metric'], entry['val'], timestamp=entry['ts'])
+                # Phase 1: Secular Witness Perception (Event-Driven)
+                trigger_engine.evaluate_anomaly(entry['metric'], entry['val'], timestamp=entry['ts'])
             
         print(f"[{datetime.now()}] Processed {len(standardized_data)} data points from Apple Health.")
         return {"status": "success", "processed_data_points": len(standardized_data)}

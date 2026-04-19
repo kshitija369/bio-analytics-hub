@@ -52,7 +52,7 @@ def run_pipeline(hours_back=168, practice_sessions=None):
     print(f"\n--- Running Peak Autonomic Recovery Data Pipeline (Last {hours_back} hours) ---")
     db = BiometricDatabase()
     oura = OuraProvider()
-    trigger_engine = BiometricTriggerEngine()
+    trigger_engine = BiometricTriggerEngine(db=db)
     
     now = datetime.now(timezone.utc)
     start = now - timedelta(hours=hours_back)
@@ -64,6 +64,8 @@ def run_pipeline(hours_back=168, practice_sessions=None):
         db.insert_biometrics(std_oura)
         for entry in std_oura:
             trigger_engine.evaluate(entry['metric'], entry['val'], timestamp=entry['ts'])
+            # Phase 1: Secular Witness Perception (Event-Driven)
+            trigger_engine.evaluate_anomaly(entry['metric'], entry['val'], timestamp=entry['ts'])
 
     unified_raw = db.get_data(start, now)
     if unified_raw:

@@ -36,3 +36,39 @@ class ExperimentRegistry:
             if e.get('id') == experiment_id:
                 return e
         return None
+
+class AgentToolRegistry:
+    """
+    DT4H-Sim/Secular-Witness: Phase 3.
+    Registers external API definitions as function-calling tools for Gemini.
+    """
+    def __init__(self):
+        self.tools = {
+            "create_calendar_block": {
+                "name": "create_calendar_block",
+                "description": "Stages a calendar invitation for a suggested recovery practice.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "title": {"type": "string", "description": "e.g. 15-minute Nature Walk"},
+                        "start_time": {"type": "string", "format": "date-time"},
+                        "duration_mins": {"type": "integer"}
+                    },
+                    "required": ["title", "start_time"]
+                }
+            },
+            "pause_slack_notifications": {
+                "name": "pause_slack_notifications",
+                "description": "Silences work notifications to protect a physiological recovery window.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "duration_mins": {"type": "integer", "description": "Minutes to snooze"}
+                    },
+                    "required": ["duration_mins"]
+                }
+            }
+        }
+
+    def get_all_tool_definitions(self) -> List[Dict[str, Any]]:
+        return list(self.tools.values())

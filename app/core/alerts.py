@@ -4,29 +4,74 @@ import os
 import json
 from datetime import datetime, timedelta
 from .notifiers import send_to_watch
-
 class BiometricTriggerEngine:
     _last_alerts = {}
 
-    def __init__(self, config_path="config/triggers.yaml"):
+    def __init__(self, config_path="config/triggers.yaml", db=None):
         print(f"--- [DEBUG] Initializing TriggerEngine with config: {config_path} ---")
-        # Allow specifying config_path for testing or flexibility
-        if not os.path.exists(config_path):
-            print(f"--- [DEBUG] Config file NOT FOUND at {config_path} ---")
-            self.config = {'alerts': {'enabled': False}}
-            return
-            
-        try:
-            with open(config_path, 'r') as f:
-                self.config = yaml.safe_load(f)
-            print("--- [DEBUG] Trigger config loaded successfully ---")
-        except Exception as e:
-            print(f"--- [DEBUG] Error loading trigger config: {e} ---")
-            self.config = {'alerts': {'enabled': False}}
-            
+        self.config_path = config_path
+        self.config = self._load_config()
+        self.db = db
         self.ops = {"gt": operator.gt, "lt": operator.lt, "eq": operator.eq}
         # DT4H-Sim: Agentic Configuration
         self.use_agent = os.environ.get("USE_AGENTIC_ALERTS", "false").lower() == "true"
+        # Secular Witness: Event-Driven Configuration
+        self.pubsub_topic = os.environ.get("GCP_PUBSUB_TOPIC", "biometric-anomalies")
+
+    def _load_config(self):
+        print(f"--- [DEBUG] Loading trigger config from: {self.config_path} ---")
+        if not os.path.exists(self.config_path):
+            print(f"--- [DEBUG] Config file NOT FOUND at {self.config_path} ---")
+            return {'alerts': {'enabled': False}}
+            
+        try:
+            with open(self.config_path, 'r') as f:
+                return yaml.safe_load(f)
+        except Exception as e:
+            print(f"--- [DEBUG] Error loading trigger config: {e} ---")
+            return {'alerts': {'enabled': False}}
+
+    def evaluate_anomaly(self, metric_name: str, current_value: float, timestamp: datetime):
+        """
+        Phase 1: Perception.
+        Calculates dynamic baseline (7-day moving avg) and publishes anomalies.
+        """
+        if not self.db:
+            return
+
+        # 1. Fetch 7-day baseline
+        start_7d = timestamp - timedelta(days=7)
+        historical = self.db.get_data(start_7d, timestamp, metrics=[metric_name])
+
+        if not historical or len(historical) < 10: # Minimum sample size
+            return
+
+        vals = [r['val'] for r in historical]
+        moving_avg = sum(vals) / len(vals)
+
+        # 2. Check for Anomaly (e.g. HRV drop > 20%)
+        if metric_name == "heart_rate_variability":
+            deviation = ((current_value - moving_avg) / moving_avg) * 100
+            if deviation < -20: # 20% Drop
+                self._publish_anomaly(metric_name, current_value, moving_avg, deviation, timestamp)
+
+    def _publish_anomaly(self, metric, val, baseline, deviation, ts):
+        """Publishes event to Pub/Sub for the Orchestrator to process."""
+        print(f"--- [Perception] Anomaly Detected: {metric} is {deviation:.1f}% below baseline ---")
+
+        anomaly_event = {
+            "metric": metric,
+            "val": val,
+            "baseline": baseline,
+            "deviation": round(deviation, 2),
+            "timestamp": ts.isoformat() if hasattr(ts, 'isoformat') else str(ts)
+        }
+
+        # Simulation: In production, use google.cloud.pubsub_v1
+        print(f"--- [Perception] Publishing to {self.pubsub_topic}: {json.dumps(anomaly_event)} ---")
+
+        # If agentic alerts are still in legacy mode, we might also trigger the nudge here
+        # but for Secular Witness, the Orchestrator (Worker) handles it.
 
     def evaluate(self, metric_name, current_value, timestamp=None):
         if not self.config.get('alerts', {}).get('enabled', False):
