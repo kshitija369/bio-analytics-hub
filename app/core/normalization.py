@@ -36,6 +36,12 @@ class BiometricNormalizer:
         # Note: We pivot on metric_with_source but keep 'metric' logic for unified views
         pivoted = df.pivot_table(index='ts', columns='metric', values='val', aggfunc='mean')
         
+        # CRITICAL: Ensure index is localized to UTC after pivot to avoid mixed TZ errors in resample
+        if pivoted.index.tz is None:
+            pivoted.index = pivoted.index.tz_localize('UTC')
+        else:
+            pivoted.index = pivoted.index.tz_convert('UTC')
+        
         # Add state_label if it exists
         if 'tag' in df.columns:
             # For simplicity, we take the 'first' tag encountered for that timestamp
