@@ -73,8 +73,21 @@
             </div>
 
             <div class="sidebar">
+                <!-- DT4H-Sim: Predictive Sandbox -->
+                <div class="card" style="border-color: #ffb74d;">
+                    <div class="label" style="color: #ffb74d;">Predictive Sandbox (MSDT)</div>
+                    <p><small>Simulate how future events impact your recovery trajectory.</small></p>
+                    <select id="event-type" style="width: 100%; background: #222; color: #fff; border: 1px solid #444; padding: 5px; margin-bottom: 10px;">
+                        <option value="meal">Late Meal (22:00)</option>
+                        <option value="travel">Cross-timezone Travel</option>
+                        <option value="workout">High-Intensity Workout</option>
+                    </select>
+                    <button onclick="runSimulation()" id="sim-btn" class="btn" style="width: 100%; background: #ffb74d; color: #000;">Run Forecast</button>
+                </div>
+
                 <div class="card">
-                    <div class="label">Correlation (r)</div>
+                    <div class="label">Study Strength (r)</div>
+
                     <div class="metric-val">{{ metrics.correlation }}</div>
                     <p><small>{{ metrics.status }}</small></p>
                 </div>
@@ -141,6 +154,60 @@
         };
 
         Plotly.newPlot('chart', [trace1, trace2], layout);
+
+        async function runSimulation() {
+            const btn = document.getElementById('sim-btn');
+            const eventType = document.getElementById('event-type').value;
+            const originalText = btn.innerText;
+            
+            btn.innerText = "Simulating...";
+            btn.disabled = true;
+
+            const events = [];
+            if (eventType === 'meal') {
+                events.push({event: "meal", time: "22:00", intensity: "high_carb"});
+            } else if (eventType === 'travel') {
+                events.push({event: "travel", destination: "GMT+5", duration: "8h"});
+            } else {
+                events.push({event: "workout", intensity: "max", duration: "1h"});
+            }
+
+            try {
+                const response = await fetch(`/api/v1/experiments/{{ protocol.id }}/simulate`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({events: events})
+                });
+                
+                const data = await response.json();
+                if (data.status === 'success') {
+                    const simDates = data.prediction.map(p => p.timestamp);
+                    const simHR = data.prediction.map(p => p.heart_rate);
+
+                    const simTrace = {
+                        x: simDates,
+                        y: simHR,
+                        name: 'Forecasted Recovery',
+                        type: 'scatter',
+                        mode: 'lines',
+                        line: {color: '#ffb74d', width: 3, dash: 'dash'}
+                    };
+
+                    // Add trace to existing chart
+                    Plotly.addTraces('chart', [simTrace]);
+                    btn.innerText = "Forecast Added";
+                } else {
+                    alert("Simulation failed: " + data.message);
+                    btn.innerText = originalText;
+                }
+            } catch (e) {
+                console.error(e);
+                alert("Error connecting to MSDT Engine.");
+                btn.innerText = originalText;
+            } finally {
+                btn.disabled = false;
+            }
+        }
     </script>
 </body>
 </html>
