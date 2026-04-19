@@ -1,6 +1,7 @@
 import yaml
 import operator
 import os
+import json
 from datetime import datetime, timedelta
 from .notifiers import send_to_watch
 
@@ -24,6 +25,8 @@ class BiometricTriggerEngine:
             self.config = {'alerts': {'enabled': False}}
             
         self.ops = {"gt": operator.gt, "lt": operator.lt, "eq": operator.eq}
+        # DT4H-Sim: Agentic Configuration
+        self.use_agent = os.environ.get("USE_AGENTIC_ALERTS", "false").lower() == "true"
 
     def evaluate(self, metric_name, current_value, timestamp=None):
         if not self.config.get('alerts', {}).get('enabled', False):
@@ -55,14 +58,35 @@ class BiometricTriggerEngine:
                     if self._is_cooldown_active(rule['id']):
                         continue
 
-                    # Send the alert
-                    payload = rule['payload']
-                    msg = payload['message'].format(value=current_value)
-                    title = payload['title']
-                    priority = payload.get('priority', 0)
-                    
-                    if send_to_watch(title, msg, priority):
-                        self._last_alerts[rule['id']] = datetime.now()
+                    if self.use_agent:
+                        self._trigger_agentic_nudge(rule, current_value)
+                    else:
+                        self._send_static_alert(rule, current_value)
+
+    def _send_static_alert(self, rule, current_value):
+        """Original threshold-based haptic alert."""
+        payload = rule['payload']
+        msg = payload['message'].format(value=current_value)
+        title = payload['title']
+        priority = payload.get('priority', 0)
+        
+        if send_to_watch(title, msg, priority):
+            self._last_alerts[rule['id']] = datetime.now()
+
+    def _trigger_agentic_nudge(self, rule, current_value):
+        """
+        DT4H-Sim: Agentic Workflow.
+        Passes context to Gemini to generate an explainable 'Care Nudge'.
+        """
+        print(f"--- [Agentic Hub] Evaluating context for {rule['id']} (Val: {current_value}) ---")
+        
+        # Mock Gemini Response (In real use, we'd use Vertex AI here)
+        nudge = "Elevated heart rate detected. Consider a 2-minute physiological sigh to reset your autonomic balance."
+        
+        title = "AI Performance Nudge"
+        if send_to_watch(title, nudge, priority=1):
+            self._last_alerts[rule['id']] = datetime.now()
+            print(f"  [Agentic Hub] Nudge sent: {nudge}")
 
     def _is_cooldown_active(self, rule_id):
         last_time = self._last_alerts.get(rule_id)

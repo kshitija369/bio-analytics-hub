@@ -7,6 +7,9 @@ from typing import List, Dict, Any, Optional
 from app.domain.dimension_repository import DimensionRepository
 from app.core.database import BiometricDatabase
 
+# New: BigQuery for explainability (PA-XDT)
+# from google.cloud import bigquery
+
 class ExperimentManager:
     """
     Coordinates experiment execution: loading protocols, gathering data,
@@ -45,7 +48,26 @@ class ExperimentManager:
         if experiment_id == "EXP-NAR-001":
             from .nar_evaluator import NAREvaluator
             evaluator = NAREvaluator(db=self.db)
-            return evaluator.evaluate(target_date)
+            res = evaluator.evaluate(target_date)
+            if res and res.get('status') == 'success':
+                self._log_provenance(experiment_id, res)
+            return res
         else:
             print(f"--- [ExperimentManager] Unsupported experiment: {experiment_id} ---")
             return None
+
+    def _log_provenance(self, experiment_id: str, results: Dict[str, Any]):
+        """
+        DT4H-Sim: Provenance Logging (PA-XDT).
+        Writes the 'paper trail' of the inference to BigQuery.
+        """
+        print(f"--- [Provenance] Logging trace for {experiment_id} ---")
+        # In real use, this would stream to BigQuery
+        trace = {
+            "experiment_id": experiment_id,
+            "timestamp": datetime.now().isoformat(),
+            "results_summary": results,
+            "version": "DT4H-Sim-1.1"
+        }
+        # Simulated BigQuery Insert
+        pass

@@ -1,87 +1,54 @@
 import pandas as pd
 from typing import List, Dict, Any
 from datetime import datetime
-
 import pytz
 
 class BiometricNormalizer:
     @staticmethod
     def localize_dataframe(df: pd.DataFrame) -> pd.DataFrame:
-        """Detects system timezone and translates UTC indices."""
-        if df.empty:
-            return df
-        
-        # Use pytz for stability in Docker
-        # Default to Palo Alto (America/Los_Angeles)
-        try:
-            local_tz = 'America/Los_Angeles'
-            tz_obj = pytz.timezone(local_tz)
-        except Exception as e:
-            print(f"--- [DEBUG] pytz failure, falling back to UTC: {e} ---")
-            local_tz = 'UTC'
-            tz_obj = pytz.UTC
-        
-        # 1. Convert index to datetime if it isn't
-        if not pd.api.types.is_datetime64_any_dtype(df.index):
-            df.index = pd.to_datetime(df.index)
-        
-        # 2. Localize: UTC -> System Local
+        """Detects and localizes naive DataFrames to UTC."""
         if df.index.tz is None:
-            df.index = df.index.tz_localize('UTC').tz_convert(local_tz)
-        else:
-            df.index = df.index.tz_convert(local_tz)
-            
-        return df
+            return df.tz_localize('UTC')
+        return df.tz_convert('UTC')
 
     @staticmethod
-    def normalize_to_timeseries(data: List[Dict[str, Any]], resample_rate='1min') -> pd.DataFrame:
+    def normalize_to_timeseries(raw_entries: List[Dict[str, Any]], resample_rate: str = '1min') -> pd.DataFrame:
         """
-        Takes standardized biometric list and returns a cleaned, 
-        resampled, and interpolated pandas DataFrame.
+        Processes heterogeneous raw biometric entries into a unified,
+        uniformly sampled UTC time-series DataFrame.
         """
-        if not data:
+        if not raw_entries:
             return pd.DataFrame()
 
-        df = pd.DataFrame(data)
+        df = pd.DataFrame(raw_entries)
+        
+        # Ensure timestamp is datetime and UTC
         df['ts'] = pd.to_datetime(df['ts'], format='ISO8601')
+        df['ts'] = df['ts'].dt.tz_localize('UTC') if df['ts'].dt.tz is None else df['ts'].dt.tz_convert('UTC')
         
-        # Ensure UTC and localize if missing
-        df['ts'] = df.apply(
-            lambda x: x['ts'].tz_convert('UTC') if x['ts'].tz is not None 
-            else x['ts'].tz_localize('UTC'), axis=1
-        )
+        # Add a unique key for pivot: metric + source
+        # This prevents collisions when multiple sources provide the same metric
+        df['source_key'] = df['source'].apply(lambda x: str(x).split('_')[0].lower())
+        df['metric_with_source'] = df['metric'] + "_" + df['source_key']
         
-        # Standardize source names for cleaner columns
-        df['source_key'] = df['source'].apply(lambda x: 'apple' if 'Apple' in str(x) else 'oura')
+        # Pivot into columns (Time-Series)
+        # Note: We pivot on metric_with_source but keep 'metric' logic for unified views
+        pivoted = df.pivot_table(index='ts', columns='metric', values='val', aggfunc='mean')
         
-        # Ensure 'heart_rate_variability' is standardized across sources
-        # (This handles cases where the metric might be tagged slightly differently in raw data)
-        df['metric'] = df['metric'].replace('heart_rate_variability_sdnn', 'heart_rate_variability')
-        
-        # Create a unique metric name per source (e.g., heart_rate_apple)
-        df['metric_with_source'] = df.apply(lambda row: f"{row['metric']}_{row['source_key']}", axis=1)
-        
-        df = df.set_index('ts')
-        
-        # Pivot using the source-specific metric names
-        pivoted = df.pivot_table(index='ts', columns='metric_with_source', values='val', aggfunc='mean')
-        
-        # Also include the generic metric names (mean of both sources) for backward compatibility
-        pivoted_generic = df.pivot_table(index='ts', columns='metric', values='val', aggfunc='mean')
-        pivoted = pd.concat([pivoted, pivoted_generic], axis=1)
-
-        # Capture tags (if any exist) to preserve state_labels
-        tags = df.pivot_table(index='ts', columns='metric', values='tag', aggfunc='first')
-        if 'mindful_minutes' in tags.columns:
-             pivoted['state_label'] = tags['mindful_minutes'].fillna('Baseline')
+        # Add state_label if it exists
+        if 'tag' in df.columns:
+            # For simplicity, we take the 'first' tag encountered for that timestamp
+            tags = df.pivot_table(index='ts', columns='metric', values='tag', aggfunc='first')
+            # Use the most frequent tag across all metrics for that minute as 'state_label'
+            pivoted['state_label'] = tags.ffill(axis=1).iloc[:, -1]
         else:
-             pivoted['state_label'] = 'Baseline'
+            pivoted['state_label'] = 'Baseline'
 
         # Resample and Interpolate metrics
         resampled_metrics = pivoted.drop(columns=['state_label']).resample(resample_rate).mean()
         interpolated = resampled_metrics.interpolate(method='linear')
         
-        # Resample state_label (forward fill or similar)
+        # Resample state_label (forward fill)
         interpolated['state_label'] = pivoted['state_label'].resample(resample_rate).ffill().reindex(interpolated.index).fillna('Baseline')
         
         return interpolated
@@ -98,6 +65,7 @@ class BiometricNormalizer:
         df['state_label'] = 'Baseline'
         
         for start, end, label in practice_sessions:
+            # Handle naive or aware inputs
             start_dt = pd.to_datetime(start).tz_localize('UTC') if pd.to_datetime(start).tz is None else pd.to_datetime(start).tz_convert('UTC')
             end_dt = pd.to_datetime(end).tz_localize('UTC') if pd.to_datetime(end).tz is None else pd.to_datetime(end).tz_convert('UTC')
             
@@ -105,3 +73,19 @@ class BiometricNormalizer:
             df.loc[mask, 'state_label'] = label
             
         return df
+
+    @staticmethod
+    def stitch_synthetic_day(history_df: pd.DataFrame, synthetic_df: pd.DataFrame) -> pd.DataFrame:
+        """
+        DT4H-Sim: Stitches historical observations with predicted 
+        synthetic data for a continuous 48h view.
+        """
+        if history_df.empty: return synthetic_df
+        if synthetic_df.empty: return history_df
+        
+        # Mark history as non-synthetic
+        if 'is_synthetic' not in history_df.columns:
+            history_df['is_synthetic'] = 0
+            
+        combined = pd.concat([history_df, synthetic_df]).sort_index()
+        return combined

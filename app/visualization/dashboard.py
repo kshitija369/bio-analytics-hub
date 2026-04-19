@@ -125,6 +125,16 @@ class BiometricDashboard:
                 opacity=0.7
             ), row=3, col=1)
 
+            # New: DT4H-Sim Synthetic Trajectory
+            if 'is_synthetic' in df.columns:
+                synthetic_hr = df[df['is_synthetic'] == 1]
+                if not synthetic_hr.empty:
+                    fig.add_trace(go.Scatter(
+                        x=synthetic_hr.index, y=synthetic_hr['heart_rate'],
+                        name='Predicted HR', line=dict(color='#ffb74d', width=3, dash='dash'),
+                        mode='lines'
+                    ), row=3, col=1)
+
             # Vibrant Practice HR
             if 'is_practice' in df.columns:
                 practice_data = df[df['is_practice'] == 1]
@@ -146,6 +156,16 @@ class BiometricDashboard:
                 name='Unified HRV', line=dict(color=COLORS['hrv_baseline'], width=1.5),
                 opacity=0.7
             ), row=4, col=1)
+
+            # New: DT4H-Sim Synthetic Trajectory
+            if 'is_synthetic' in df.columns:
+                synthetic_hrv = df[df['is_synthetic'] == 1]
+                if not synthetic_hrv.empty and 'heart_rate_variability' in synthetic_hrv.columns:
+                    fig.add_trace(go.Scatter(
+                        x=synthetic_hrv.index, y=synthetic_hrv['heart_rate_variability'],
+                        name='Predicted HRV', line=dict(color='#ffb74d', width=3, dash='dash'),
+                        mode='lines'
+                    ), row=4, col=1)
 
             if 'heart_rate_variability_apple' in df.columns:
                 apple_hrv = df[df['heart_rate_variability_apple'].notna()]
