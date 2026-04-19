@@ -23,8 +23,9 @@ class BiometricNormalizer:
         df = pd.DataFrame(raw_entries)
         
         # Ensure timestamp is datetime and UTC
-        df['ts'] = pd.to_datetime(df['ts'], format='ISO8601')
-        df['ts'] = df['ts'].dt.tz_localize('UTC') if df['ts'].dt.tz is None else df['ts'].dt.tz_convert('UTC')
+        df['ts'] = pd.to_datetime(df['ts'], format='ISO8601', utc=True)
+        # Use .dt.tz_convert to ensure everything is explicitly UTC
+        df['ts'] = df['ts'].dt.tz_convert('UTC')
         
         # Add a unique key for pivot: metric + source
         # This prevents collisions when multiple sources provide the same metric
