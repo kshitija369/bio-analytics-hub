@@ -36,12 +36,20 @@ class BiometricTriggerEngine:
         Phase 1: Perception.
         Calculates dynamic baseline (7-day moving avg) and publishes anomalies.
         """
-        if not self.db:
+        if not self.db or timestamp is None:
             return
 
+        # Ensure timestamp is datetime (handle ISO strings from webhooks)
+        dt = timestamp
+        if isinstance(timestamp, str):
+            try:
+                dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+            except:
+                return
+
         # 1. Fetch 7-day baseline
-        start_7d = timestamp - timedelta(days=7)
-        historical = self.db.get_data(start_7d, timestamp, metrics=[metric_name])
+        start_7d = dt - timedelta(days=7)
+        historical = self.db.get_data(start_7d, dt, metrics=[metric_name])
 
         if not historical or len(historical) < 10: # Minimum sample size
             return

@@ -14,7 +14,7 @@ def test_secular_witness_agent_full_cycle():
     print("\n--- Starting Secular Witness Agent E2E Validation ---")
     
     # 1. Setup Mock DB with history for Baseline
-    db = BiometricDatabase(db_path="Test_Agent_Log.sqlite")
+    db = BiometricDatabase(db_path="Test_Agent_Log.sqlite", working_db="Test_Agent_Working.sqlite")
     db._ensure_initialized()
     
     now = datetime.now(timezone.utc)
@@ -66,12 +66,40 @@ def test_secular_witness_agent_full_cycle():
         assert "Toxic Stress" in mock_nudge.call_args[1]['message']
         print("✅ Phase 2/3 (Reasoning & Action) Validated.")
 
-    print("\n--- Secular Witness Agent Validation Complete ---")
+    print("\n--- Additional Exhaustive Checks ---")
     
-    # Cleanup
+    # 4. Test 'Good Difficulty' Logic (Minor drop < 30%)
+    minor_anomaly = anomaly_data.copy()
+    minor_anomaly['deviation'] = -15.0 # 15% drop
+    
+    with patch("app.engine.agent_orchestrator.send_bidirectional_nudge") as mock_nudge_minor:
+        orchestrator.process_anomaly(minor_anomaly)
+        # Should not trigger an action for minor drops
+        assert not mock_nudge_minor.called
+        print("✅ Reasoning (Good Difficulty) Validated.")
+
+    # 6. Test Insufficient Baseline Data
+    print("Phase 1: Testing insufficient data edge case...")
+    empty_db = BiometricDatabase(db_path="Empty_Test.sqlite", working_db="Empty_Working.sqlite")
+    empty_db._ensure_initialized()
+    trigger_engine_empty = BiometricTriggerEngine(db=empty_db)
+
+    with patch("app.core.alerts.BiometricTriggerEngine._publish_anomaly") as mock_publish_empty:
+        # 1 point is not enough for a baseline
+        empty_db.insert_biometrics([{
+            "ts": now.isoformat(), "metric": "heart_rate_variability", "val": 60.0,
+            "unit": "ms", "source": "Mock", "tag": "baseline", "loinc": "80404-7"
+        }])
+        trigger_engine_empty.evaluate_anomaly("heart_rate_variability", 30.0, now)
+        assert not mock_publish_empty.called
+        print("✅ Insufficient Data Handling Validated.")
+
+    # Cleanup all test DBs
     import os
-    if os.path.exists("Test_Agent_Log.sqlite"):
-        os.remove("Test_Agent_Log.sqlite")
+    for f in ["Empty_Test.sqlite", "Empty_Working.sqlite", "Test_Agent_Log.sqlite", "Test_Agent_Working.sqlite"]:
+        if os.path.exists(f): os.remove(f)
+
+    print("\n--- Secular Witness Agent Validation Complete ---")
 
 if __name__ == "__main__":
     test_secular_witness_agent_full_cycle()
