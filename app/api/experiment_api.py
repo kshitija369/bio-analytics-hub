@@ -95,18 +95,15 @@ async def simulate_future(experiment_id: str, request: Request):
     history = repo.get_dimension_data("HeartRate", now - timedelta(days=7), now)
     
     # 2. Run Simulation
-    synthetic_df = _sim_engine.predict_next_24h(history, events)
+    sim_result = _sim_engine.predict_next_24h(history, events)
     
-    if synthetic_df.empty:
-        return {"status": "error", "message": "Insufficient history for simulation"}
+    if sim_result.get("status") == "error":
+        return {"status": "error", "message": sim_result.get("message")}
         
-    # 3. Format for UI
-    synthetic_df['ts'] = synthetic_df.index.map(lambda x: x.isoformat())
-    # Convert index to column for dict conversion
-    results = synthetic_df.reset_index().rename(columns={'index':'timestamp'}).to_dict(orient="records")
-    
     return {
         "status": "success",
         "experiment_id": experiment_id,
-        "prediction": results
+        "prediction": sim_result["time_series"],
+        "predicted_score": sim_result["predicted_readiness"],
+        "predicted_hrv": sim_result["predicted_hrv_avg"]
     }
