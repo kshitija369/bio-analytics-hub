@@ -126,5 +126,28 @@ class TestExperimentEngine(unittest.TestCase):
         self.assertEqual(rows[0][0], 75.0)
         self.assertEqual(rows[0][1], "v2")
 
+    def test_sri_circadian_dip_accuracy(self):
+        """Specifically verifies the dip-time calculation logic."""
+        target_date = date.today()
+        # 1. Healthy HR with early dip at 2:30 AM
+        night_start = datetime.combine(target_date - timedelta(days=1), datetime.min.time()).replace(hour=22, minute=30)
+        early_dip_ts = datetime.combine(target_date, datetime.min.time()).replace(hour=2, minute=30)
+        
+        mock_entries = [
+            {"ts": night_start.isoformat(), "metric": "heart_rate", "val": 60.0, "unit": "bpm", "source": "Mock", "tag": "baseline", "loinc": "8867-4"},
+            {"ts": early_dip_ts.isoformat(), "metric": "heart_rate", "val": 40.0, "unit": "bpm", "source": "Mock", "tag": "baseline", "loinc": "8867-4"},
+            {"ts": (early_dip_ts + timedelta(hours=4)).isoformat(), "metric": "heart_rate", "val": 55.0, "unit": "bpm", "source": "Mock", "tag": "baseline", "loinc": "8867-4"},
+            {"ts": early_dip_ts.isoformat(), "metric": "heart_rate_variability", "val": 60.0, "unit": "ms", "source": "Mock", "tag": "baseline", "loinc": "80404-7"},
+            {"ts": f"{target_date.isoformat()}T00:00:00Z", "metric": "readiness_score", "val": 85.0, "unit": "score", "source": "Mock", "tag": "baseline", "loinc": "LP200424-3"}
+        ]
+        self.db.insert_biometrics(mock_entries)
+        
+        result = self.manager.evaluate_experiment_for_date("EXP-SRI-001", target_date)
+        
+        self.assertIsNotNone(result)
+        # 2:30 AM is 0.5 hours BEFORE 3:00 AM anchor
+        self.assertEqual(result['circadian_alignment'], -0.5)
+        print(f"✅ Dip Accuracy Test: Offset {result['circadian_alignment']}")
+
 if __name__ == "__main__":
     unittest.main()

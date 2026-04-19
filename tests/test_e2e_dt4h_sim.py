@@ -91,7 +91,7 @@ def test_dt4h_sim_full_lifecycle():
     import pandas as pd
     
     history_df = pd.DataFrame([{"val": 60.0, "heart_rate": 60.0}], index=[test_ts])
-    synthetic_df = pd.DataFrame(res_json["prediction"]).set_index(pd.to_datetime(pd.DataFrame(res_json["prediction"])['timestamp']))
+    synthetic_df = pd.DataFrame(res_json["prediction"]).set_index(pd.to_datetime(pd.DataFrame(res_json["prediction"])['ts']))
     
     # Ensure both are UTC aware for comparison
     if history_df.index.tz is None: history_df.index = history_df.index.tz_localize('UTC')
