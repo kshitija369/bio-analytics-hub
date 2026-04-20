@@ -58,12 +58,19 @@ def test_secular_witness_agent_full_cycle():
     orchestrator.repo.db = db # Point to test DB
     
     print("Phase 2/3: Processing anomaly through Orchestrator...")
-    with patch("app.engine.agent_orchestrator.send_bidirectional_nudge", return_value=True) as mock_nudge:
+    with patch("app.engine.agent_orchestrator.send_bidirectional_nudge", return_value=True) as mock_nudge, \
+         patch("app.core.provenance.ProvenanceLogger.log_decision") as mock_log:
         orchestrator.process_anomaly(anomaly_data)
         
         # Verify Action was staged (Phase 3)
         assert mock_nudge.called
         assert "Toxic Stress" in mock_nudge.call_args[1]['message']
+        
+        # Verify Provenance was logged (Phase 1)
+        assert mock_log.called
+        assert mock_log.call_args[1]['agent_id'] == "Secular-Witness-001"
+        assert "Interactive Care Nudge" in mock_log.call_args[1]['action']
+        print("✅ Phase 1 (Provenance Ledger) Validated.")
         print("✅ Phase 2/3 (Reasoning & Action) Validated.")
 
     print("\n--- Additional Exhaustive Checks ---")

@@ -7,6 +7,7 @@ from app.domain.dimension_repository import DimensionRepository
 from .registry import AgentToolRegistry
 from app.core.notifiers import send_bidirectional_nudge
 from app.adapters.home_assistant import HomeAssistantAdapter
+from app.core.provenance import ProvenanceLogger
 
 class AgentOrchestrator:
     """
@@ -21,6 +22,7 @@ class AgentOrchestrator:
         self.repo = DimensionRepository()
         self.tool_registry = AgentToolRegistry()
         self.ha = HomeAssistantAdapter()
+        self.provenance = ProvenanceLogger()
 
     def sync_circadian_lighting(self):
         """
@@ -63,13 +65,25 @@ class AgentOrchestrator:
         context = self._assemble_context(anomaly_data)
         
         # 2. Reasoning (Gemini call)
-        nudge = self._get_gemini_reasoning(context)
+        reasoning = self._get_gemini_reasoning(context)
         
-        # 3. Action (Phase 3)
-        if nudge and "Toxic Stress" in nudge:
-            self._execute_action(nudge)
+        # 3. Action (Phase 3) & Provenance Logging
+        if reasoning and "Toxic Stress" in reasoning:
+            self._execute_action(reasoning)
+            self.provenance.log_decision(
+                agent_id="Secular-Witness-001",
+                context=anomaly_data,
+                reasoning=reasoning,
+                action="Interactive Care Nudge"
+            )
         else:
-            print(f"--- [Agent] No action required: {nudge} ---")
+            print(f"--- [Agent] No action required: {reasoning} ---")
+            self.provenance.log_decision(
+                agent_id="Secular-Witness-001",
+                context=anomaly_data,
+                reasoning=reasoning,
+                action="None"
+            )
 
     def _assemble_context(self, anomaly: dict) -> str:
         """

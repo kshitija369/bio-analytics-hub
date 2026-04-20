@@ -16,3 +16,4 @@ importlib-metadata
 plotly
 pytest
 httpx
+google-cloud-bigquery

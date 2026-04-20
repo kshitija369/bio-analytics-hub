@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, date
 from typing import List, Dict, Any, Optional
 from app.domain.dimension_repository import DimensionRepository
 from app.core.database import BiometricDatabase
+from app.core.provenance import ProvenanceLogger
 
 # New: BigQuery for explainability (PA-XDT)
 # from google.cloud import bigquery
@@ -19,6 +20,7 @@ class ExperimentManager:
         self.config_path = config_path
         self.repo = DimensionRepository()
         self.db = BiometricDatabase()
+        self.provenance = ProvenanceLogger()
 
     def load_protocol(self, experiment_id: str) -> Dict[str, Any]:
         """Loads a YAML experiment protocol by ID."""
@@ -59,15 +61,11 @@ class ExperimentManager:
     def _log_provenance(self, experiment_id: str, results: Dict[str, Any]):
         """
         DT4H-Sim: Provenance Logging (PA-XDT).
-        Writes the 'paper trail' of the inference to BigQuery.
+        Writes the 'paper trail' of the inference to the ledger.
         """
-        print(f"--- [Provenance] Logging trace for {experiment_id} ---")
-        # In real use, this would stream to BigQuery
-        trace = {
-            "experiment_id": experiment_id,
-            "timestamp": datetime.now().isoformat(),
-            "results_summary": results,
-            "version": "DT4H-Sim-1.1"
-        }
-        # Simulated BigQuery Insert
-        pass
+        self.provenance.log_decision(
+            agent_id=f"Researcher-{experiment_id}",
+            context={"results": results},
+            reasoning="Daily SRI baseline evaluation",
+            action="Record Research Entry"
+        )
