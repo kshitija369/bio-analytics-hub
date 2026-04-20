@@ -234,6 +234,13 @@ def test_evaluate_endpoint_days_back():
     assert response.status_code == 200
     assert response.json()["status"] == "success"
 
+def test_agent_sync_home():
+    with patch("app.adapters.home_assistant.HomeAssistantAdapter.set_light_kelvin", return_value=True) as mock_ha:
+        response = client.get("/agent/sync-home")
+        assert response.status_code == 200
+        assert response.json()["status"] == "success"
+        assert mock_ha.called
+
 def test_alert_engine_trigger():
     now_iso = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     payload = {

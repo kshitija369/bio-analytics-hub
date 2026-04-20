@@ -67,6 +67,28 @@ class AgentToolRegistry:
                     },
                     "required": ["duration_mins"]
                 }
+            },
+            "set_home_lighting": {
+                "name": "set_home_lighting",
+                "description": "Syncs home light temperature (Kelvin) to support circadian alignment.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "kelvin": {"type": "integer", "description": "Target Kelvin (2000 for night, 5000 for morning)"}
+                    },
+                    "required": ["kelvin"]
+                }
+            },
+            "optimize_sleep_temp": {
+                "name": "optimize_sleep_temp",
+                "description": "Lowers home temperature to support deep sleep architecture.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "target_temp": {"type": "number", "description": "Target temperature in Fahrenheit"}
+                    },
+                    "required": ["target_temp"]
+                }
             }
         }
 

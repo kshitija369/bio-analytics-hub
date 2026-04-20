@@ -6,6 +6,7 @@ from typing import List, Dict, Any, Optional
 from app.domain.dimension_repository import DimensionRepository
 from .registry import AgentToolRegistry
 from app.core.notifiers import send_bidirectional_nudge
+from app.adapters.home_assistant import HomeAssistantAdapter
 
 class AgentOrchestrator:
     """
@@ -19,6 +20,26 @@ class AgentOrchestrator:
         self.model_name = "gemini-1.5-pro-002"
         self.repo = DimensionRepository()
         self.tool_registry = AgentToolRegistry()
+        self.ha = HomeAssistantAdapter()
+
+    def sync_circadian_lighting(self):
+        """
+        PoC: Syncs home lighting to Satchin Panda's light exposure rules.
+        """
+        hour = datetime.now().hour
+        print(f"--- [Agent] Syncing Circadian Lighting (Hour: {hour}) ---")
+        
+        # Satchin Panda Logic: Bright/Cool in morning, Warm/Dim at night
+        if 6 <= hour < 10:
+            target_kelvin = 5000 # Daylight (Alertness)
+        elif 10 <= hour < 18:
+            target_kelvin = 4000 # Neutral
+        else:
+            target_kelvin = 2000 # Warm (Melatonin support)
+
+        # In production, pull entity_id from user config
+        self.ha.set_light_kelvin("light.bedroom", target_kelvin)
+        print(f"  [Agent] Circadian Light Sync Complete: {target_kelvin}K")
 
     def start_listening(self):
         """

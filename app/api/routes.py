@@ -212,6 +212,21 @@ async def refresh_all_experiments(request: Request, redirect_to: str = "/experim
             
     return RedirectResponse(url=redirect_to)
 
+@router.get("/agent/sync-home", tags=["Longevity OS"])
+async def trigger_home_sync():
+    """
+    ### Circadian Smart Home Sync
+    Triggers the Agent Orchestrator to sync home lighting and environment
+    based on the current circadian phase.
+    """
+    from ..engine.agent_orchestrator import AgentOrchestrator
+    orchestrator = AgentOrchestrator()
+    try:
+        orchestrator.sync_circadian_lighting()
+        return {"status": "success", "message": "Circadian home sync complete"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/test-oura", tags=["System Diagnostics"])
 async def test_oura_connectivity():
     """
