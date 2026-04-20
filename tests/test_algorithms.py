@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 from app.engine.simulation_engine import SimulationEngine
-from app.engine.sleep_recovery_evaluator import SleepRecoveryEvaluator
+from app.engine.nar_evaluator import NAREvaluator
 from app.core.database import BiometricDatabase
 import os
 
