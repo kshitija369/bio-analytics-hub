@@ -55,3 +55,11 @@ def test_main_hub_rendering():
     assert "hx-get=\"/api/ui/current_status\"" in response.text
     assert "font-serif" in response.text
     assert "font-mono" in response.text
+
+def test_analytical_hub_rendering():
+    """Verify the legacy analytical hub renders with the expected table headers."""
+    response = client.get("/experiments/analytical")
+    assert response.status_code == 200
+    assert "Continuous Monitoring Dashboard" in response.text
+    assert "Research Protocol" in response.text
+    assert "Study Strength" in response.text

@@ -32,6 +32,26 @@ async def experiments_hub(request: Request, start: str = None, end: str = None):
         "experiments": valid_experiments
     })
 
+@router.get("/analytical")
+async def analytical_hub(request: Request, start: str = None, end: str = None):
+    """The Analytical Continuous Monitoring Dashboard (Legacy Style)."""
+    from datetime import date
+    start_dt = date.fromisoformat(start) if start else None
+    end_dt = date.fromisoformat(end) if end else None
+
+    experiments = _registry.get_all_experiments()
+    valid_experiments = []
+    for e in experiments:
+        exp_id = e.get('id')
+        if not exp_id:
+            continue
+        e['metrics'] = _coordinator.get_aggregated_metrics(exp_id, start_dt, end_dt)
+        valid_experiments.append(e)
+        
+    return templates.TemplateResponse(request, "analytical_hub.html", {
+        "experiments": valid_experiments
+    })
+
 @router.get("/{experiment_id}")
 async def experiment_detail(request: Request, experiment_id: str, start: str = None, end: str = None):
     """The Individual Experiment Detail View (Analytical Dashboard)."""

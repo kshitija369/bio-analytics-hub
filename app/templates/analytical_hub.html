@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Longevity OS | Continuous Monitoring</title>
+    <style>
+        body { background: #0a0a0a; color: #e0e0e0; font-family: 'JetBrains Mono', monospace; padding: 40px; }
+        h1 { color: #bb86fc; border-bottom: 2px solid #3700b3; padding-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { text-align: left; padding: 15px; border-bottom: 1px solid #333; }
+        th { background: #1a1a1a; color: #03dac6; }
+        tr:hover { background: #121212; }
+        .status-active { color: #03dac6; }
+        .status-planned { color: #ffb74d; }
+        .btn { display: inline-block; padding: 8px 15px; background: #bb86fc; color: #000; text-decoration: none; border-radius: 4px; font-weight: bold; }
+        .btn:hover { background: #9965f4; }
+        .metric-badge { padding: 4px 8px; background: #333; border-radius: 4px; font-size: 0.9em; }
+        .nav-footer { margin-top: 50px; border-top: 1px solid #333; padding-top: 20px; display: flex; gap: 20px; }
+        .nav-link { color: #888; text-decoration: none; font-size: 0.8em; }
+        .nav-link:hover { color: #fff; }
+    </style>
+</head>
+<body>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h1>Continuous Monitoring Dashboard</h1>
+        <div style="display: flex; gap: 10px;">
+            <a href="/" class="btn" style="background: #333; color: #fff;">Ambient View</a>
+            <a href="/experiments/refresh?redirect_to=/experiments/analytical" class="btn" style="background: #03dac6;">Refresh All Data</a>
+        </div>
+    </div>
+
+    <!-- DT4H-Sim: Cellular Avatar Section -->
+    <div style="background: #1a1a1a; padding: 20px; border: 1px solid #3700b3; border-radius: 8px; margin-bottom: 30px; display: flex; align-items: center; gap: 40px;">
+        <div style="text-align: center;">
+            <div style="font-size: 3em;">🧬</div>
+            <div style="font-size: 0.8em; color: #888; margin-top: 5px;">Active Simulation</div>
+        </div>
+        <div style="flex-grow: 1;">
+            <h3 style="margin-top: 0; color: #bb86fc;">Digital Twin Analysis (Avatar-001)</h3>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+                <div>
+                    <div style="font-size: 0.8em; color: #888;">CHRONOLOGICAL AGE</div>
+                    <div style="font-size: 1.5em; font-weight: bold;">38.2</div>
+                </div>
+                <div>
+                    <div style="font-size: 0.8em; color: #888;">BIOLOGICAL AGE</div>
+                    <div style="font-size: 1.5em; font-weight: bold; color: #03dac6;">34.8</div>
+                </div>
+                <div>
+                    <div style="font-size: 0.8em; color: #888;">RECOVERY DEVIATION</div>
+                    <div style="font-size: 1.5em; font-weight: bold; color: #ffb74d;">-3.4 yrs</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <p>Active Physiological Studies & High-Resolution Insights</p>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Reference ID</th>
+                <th>Research Protocol</th>
+                <th>Current Status</th>
+                <th>Primary Dimensions</th>
+                <th>Study Strength ($r$)</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for exp in experiments %}
+            <tr>
+                <td>{{ exp.id }}</td>
+                <td>
+                    <strong>{{ exp.name }}</strong><br>
+                    <small style="color: #888;">{{ exp.hypothesis[:80] }}...</small>
+                </td>
+                <td class="status-active">Ongoing</td>
+                <td>
+                    {% for v in exp.independent_variables %}
+                        <span class="metric-badge">{{ v.dimension }}</span>
+                    {% endfor %}
+                </td>
+                <td>
+                    {% if exp.metrics.correlation > 0.6 %}
+                        <span style="color: #03dac6;">{{ exp.metrics.correlation }}</span>
+                    {% else %}
+                        {{ exp.metrics.correlation }}
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="/experiments/{{ exp.id }}" class="btn">View Study Details</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="nav-footer">
+        <a href="/" class="nav-link">Switch to Ambient Mode</a>
+        <a href="/docs" class="nav-link">API Documentation</a>
+    </div>
+</body>
+</html>
