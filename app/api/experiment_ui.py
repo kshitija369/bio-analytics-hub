@@ -20,11 +20,16 @@ async def experiments_hub(request: Request, start: str = None, end: str = None):
 
     experiments = _registry.get_all_experiments()
     # Add metrics for each experiment for the hub view
+    valid_experiments = []
     for e in experiments:
-        e['metrics'] = _coordinator.get_aggregated_metrics(e['id'], start_dt, end_dt)
+        exp_id = e.get('id')
+        if not exp_id:
+            continue
+        e['metrics'] = _coordinator.get_aggregated_metrics(exp_id, start_dt, end_dt)
+        valid_experiments.append(e)
         
     return templates.TemplateResponse(request, "main_hub.html", {
-        "experiments": experiments
+        "experiments": valid_experiments
     })
 
 @router.get("/{experiment_id}")

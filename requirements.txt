@@ -17,3 +17,4 @@ plotly
 pytest
 httpx
 google-cloud-bigquery
+python-multipart>=0.0.12

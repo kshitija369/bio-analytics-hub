@@ -1,92 +1,131 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Biometric Research Hub</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Longevity OS | Existential Simulator</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        body { background: #0a0a0a; color: #e0e0e0; font-family: 'JetBrains Mono', monospace; padding: 40px; }
-        h1 { color: #bb86fc; border-bottom: 2px solid #3700b3; padding-bottom: 10px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { text-align: left; padding: 15px; border-bottom: 1px solid #333; }
-        th { background: #1a1a1a; color: #03dac6; }
-        tr:hover { background: #121212; }
-        .status-active { color: #03dac6; }
-        .status-planned { color: #ffb74d; }
-        .btn { display: inline-block; padding: 8px 15px; background: #bb86fc; color: #000; text-decoration: none; border-radius: 4px; font-weight: bold; }
-        .btn:hover { background: #9965f4; }
-        .metric-badge { padding: 4px 8px; background: #333; border-radius: 4px; font-size: 0.9em; }
+        body {
+            background-color: #09090b; /* zinc-950 */
+            color: #f4f4f5; /* zinc-100 */
+        }
+        .font-serif { font-family: 'Crimson Pro', serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        
+        /* Custom scrollbar for a cleaner look */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
     </style>
 </head>
-<body>
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-        <h1>Personal Biometric Hub</h1>
-        <a href="/experiments/refresh?redirect_to=/experiments/" class="btn" style="background: #03dac6;">Refresh All Data</a>
-    </div>
+<body class="min-h-screen flex flex-col items-center justify-center p-6 selection:bg-amber-500/30">
 
-    <!-- DT4H-Sim: Cellular Avatar Section -->
-    <div style="background: #1a1a1a; padding: 20px; border: 1px solid #3700b3; border-radius: 8px; margin-bottom: 30px; display: flex; align-items: center; gap: 40px;">
-        <div style="text-align: center;">
-            <div style="font-size: 3em;">🧬</div>
-            <div style="font-size: 0.8em; color: #888; margin-top: 5px;">Active Simulation</div>
-        </div>
-        <div style="flex-grow: 1;">
-            <h3 style="margin-top: 0; color: #bb86fc;">Digital Twin Analysis (Avatar-001)</h3>
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
-                <div>
-                    <div style="font-size: 0.8em; color: #888;">CHRONOLOGICAL AGE</div>
-                    <div style="font-size: 1.5em; font-weight: bold;">38.2</div>
-                </div>
-                <div>
-                    <div style="font-size: 0.8em; color: #888;">BIOLOGICAL AGE</div>
-                    <div style="font-size: 1.5em; font-weight: bold; color: #03dac6;">34.8</div>
-                </div>
-                <div>
-                    <div style="font-size: 0.8em; color: #888;">RECOVERY DEVIATION</div>
-                    <div style="font-size: 1.5em; font-weight: bold; color: #ffb74d;">-3.4 yrs</div>
-                </div>
+    <!-- Ambient Status Component -->
+    <div class="w-full max-w-2xl text-center space-y-12" 
+         hx-get="/api/ui/current_status" 
+         hx-trigger="load" 
+         hx-swap="innerHTML">
+        
+        <!-- Skeletal Loading State (The Pulse) -->
+        <div class="space-y-8 animate-pulse">
+            <div class="h-4 bg-zinc-800 rounded w-1/4 mx-auto"></div>
+            <div class="h-16 bg-zinc-800 rounded-xl w-3/4 mx-auto"></div>
+            <div class="h-6 bg-zinc-800 rounded w-1/2 mx-auto"></div>
+            <div class="space-y-2 pt-8">
+                 <div class="h-3 bg-zinc-800 rounded w-1/3 mx-auto"></div>
+                 <div class="h-3 bg-zinc-800 rounded w-1/4 mx-auto"></div>
             </div>
         </div>
     </div>
 
-    <p>Active Physiological Studies & Insights</p>
-    
-    <table>
-        <thead>
-            <tr>
-                <th>Reference ID</th>
-                <th>Research Protocol</th>
-                <th>Current Status</th>
-                <th>Primary Dimensions</th>
-                <th>Study Strength</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for exp in experiments %}
-            <tr>
-                <td>{{ exp.id }}</td>
-                <td>
-                    <strong>{{ exp.name }}</strong><br>
-                    <small style="color: #888;">{{ exp.hypothesis[:80] }}...</small>
-                </td>
-                <td class="status-active">Ongoing</td>
-                <td>
-                    {% for v in exp.independent_variables %}
-                        <span class="metric-badge">{{ v.dimension }}</span>
-                    {% endfor %}
-                </td>
-                <td>
-                    {% if exp.metrics.correlation > 0.6 %}
-                        <span style="color: #03dac6;">{{ exp.metrics.correlation }}</span>
-                    {% else %}
-                        {{ exp.metrics.correlation }}
-                    {% endif %}
-                </td>
-                <td>
-                    <a href="/experiments/{{ exp.id }}" class="btn">View Study Details</a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <!-- Hidden Template for HTMX Swapping (Inlined for demonstration, 
+         but hx-get will return the rendered version) -->
+    <script>
+        // Custom HTMX listener to handle the formatting of the returned JSON into beautiful HTML
+        document.body.addEventListener('htmx:afterOnLoad', function(evt) {
+            if (evt.detail.xhr.responseURL.includes('/api/ui/current_status')) {
+                const data = JSON.parse(evt.detail.xhr.responseText);
+                const container = evt.detail.target;
+                
+                container.innerHTML = `
+                    <div class="space-y-4 fade-in duration-1000">
+                        <p class="font-mono text-xs uppercase tracking-[0.3em] text-zinc-500">${data.state}</p>
+                        <h1 class="font-serif text-5xl md:text-6xl text-zinc-100 leading-tight">
+                            ${data.recommendation}
+                        </h1>
+                    </div>
+
+                    <div class="pt-12 space-y-6">
+                        <div class="max-w-md mx-auto">
+                            <p class="font-serif italic text-zinc-400 text-lg leading-relaxed">
+                                "${data.rationale}"
+                            </p>
+                        </div>
+                        
+                        <div class="flex flex-col items-center space-y-12">
+                            <!-- Provenance Toggle -->
+                            <div class="flex flex-col items-center">
+                                <button hx-get="/api/ui/provenance/${data.context_hash}" 
+                                        hx-target="#provenance-container" 
+                                        hx-swap="innerHTML"
+                                        class="group flex items-center space-x-2 text-zinc-600 hover:text-amber-500/80 transition-colors duration-300">
+                                    <span class="font-mono text-[10px] uppercase tracking-widest">View Rationale</span>
+                                    <svg class="w-3 h-3 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                                </button>
+                                <div id="provenance-container" class="w-full text-left"></div>
+                            </div>
+
+                            <!-- Predictive Sandbox Card -->
+                            <div class="w-full max-w-sm bg-zinc-900/50 border border-zinc-800 p-8 rounded-2xl space-y-8 backdrop-blur-sm">
+                                <h3 class="font-mono text-[10px] uppercase tracking-widest text-zinc-500 text-center">Predictive Sandbox</h3>
+                                
+                                <form hx-post="/api/ui/simulate" 
+                                      hx-trigger="change, load" 
+                                      hx-target="#readiness-badge" 
+                                      class="space-y-6">
+                                    
+                                    <div class="space-y-3">
+                                        <div class="flex justify-between">
+                                            <label class="font-mono text-[10px] text-zinc-400 uppercase">Meal Time</label>
+                                            <span id="meal-val" class="font-mono text-[10px] text-zinc-500">18:00</span>
+                                        </div>
+                                        <input type="range" name="meal_time" min="17" max="23" value="18" 
+                                               class="w-full h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-amber-500"
+                                               oninput="document.getElementById('meal-val').innerText = this.value + ':00'">
+                                    </div>
+
+                                    <div class="flex items-center justify-between">
+                                        <label class="font-mono text-[10px] text-zinc-400 uppercase">Post-Meal Walk</label>
+                                        <input type="checkbox" name="post_meal_walk" 
+                                               class="w-4 h-4 rounded border-zinc-800 bg-zinc-950 text-amber-500 focus:ring-amber-500/20">
+                                    </div>
+                                </form>
+
+                                <div id="readiness-badge" class="pt-4 border-t border-zinc-800/50">
+                                    <!-- HTMX Swaps Here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="fixed bottom-12 left-0 right-0 flex justify-center space-x-8 opacity-20 hover:opacity-100 transition-opacity duration-500">
+                         <a href="/experiments/" class="font-mono text-[10px] uppercase tracking-widest hover:text-zinc-100 transition-colors">Research Protocols</a>
+                         <a href="/docs" class="font-mono text-[10px] uppercase tracking-widest hover:text-zinc-100 transition-colors">System API</a>
+                    </div>
+                `;
+                // Re-process the new content so the provenance button's hx-get works
+                htmx.process(container);
+            }
+        });
+    </script>
+
+    <footer class="fixed top-8 right-8">
+        <div class="w-2 h-2 rounded-full bg-emerald-500/50 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+    </footer>
+
 </body>
 </html>

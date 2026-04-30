@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 import os
 
 app = FastAPI(
@@ -21,8 +21,9 @@ app = FastAPI(
 
 # Simple health endpoints
 @app.get("/")
-async def root():
-    return {"status": "alive", "message": "Peak Autonomic Recovery Monitoring API"}
+async def root(request: Request):
+    from app.api.experiment_ui import experiments_hub
+    return await experiments_hub(request)
 
 @app.get("/health")
 async def health():
@@ -33,10 +34,12 @@ try:
     from app.api.routes import router
     from app.api.experiment_api import router as experiment_api_router
     from app.api.experiment_ui import router as experiment_ui_router
+    from app.api.ui_routes import router as ui_router
     
     app.include_router(router)
     app.include_router(experiment_ui_router, prefix="/experiments", tags=["Research Hub"])
     app.include_router(experiment_api_router, prefix="/api/v1/experiments", tags=["Research API"])
+    app.include_router(ui_router, prefix="/api/ui", tags=["Longevity OS UI"])
 except Exception as e:
     print(f"--- [CRITICAL] Router load failed: {e} ---")
 

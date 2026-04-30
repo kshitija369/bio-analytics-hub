@@ -15,7 +15,8 @@ async def list_experiments() -> List[Dict[str, Any]]:
     ### List All Experiments
     Retrieves metadata for all defined research protocols.
     """
-    return _registry.get_all_experiments()
+    all_exp = _registry.get_all_experiments()
+    return [e for e in all_exp if e.get('id')]
 
 @router.get("/migrate", tags=["Research API"])
 async def migrate_experiment_data():
