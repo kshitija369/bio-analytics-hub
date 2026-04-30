@@ -1,0 +1,16 @@
+experiment_id: EXP-CGM-001
+name: Metabolic Recovery Correlation
+description: Tracks the relationship between nighttime Glucose AUC and next-day Oura Readiness.
+hypotheses:
+  - "High nighttime metabolic load (>12,000 mg/dL*min AUC) reduces Readiness by >10 points."
+variables:
+  independent: nighttime_glucose_auc
+  dependent: morning_readiness_score
+analysis:
+  method: pearson_correlation
+  target_ledgers:
+    - research_results
+    - bigquery.biometric_analytics.cgm_impact
+thresholds:
+  nudge_glucose: 130.0
+  velocity_limit: 2.0

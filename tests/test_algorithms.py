@@ -74,5 +74,22 @@ class TestExperimentalAlgorithms(unittest.TestCase):
         self.assertGreater(dip_idx_stress, dip_idx_base)
         print(f"✅ Hammock Dip Test: Baseline Dip @ {dip_idx_base}, Stressed Dip @ {dip_idx_stress}")
 
+    def test_metabolic_simulation(self):
+        """High-carb meals should trigger a glucose spike in the simulation."""
+        # Add baseline glucose to history
+        self.history['blood_glucose'] = 90.0
+        
+        # High-carb meal (+80 spike)
+        events = [{"event": "meal", "carbs": 100}]
+        result = self.engine.predict_next_24h(self.history, events)
+        
+        self.assertEqual(result['status'], 'success')
+        self.assertAlmostEqual(result['predicted_glucose_peak'], 170.0, delta=5.0)
+        
+        # Check time-series for peak
+        df = pd.DataFrame(result['time_series'])
+        self.assertGreater(df['blood_glucose'].max(), 160.0)
+        print(f"✅ Metabolic Test: Glucose Peak {result['predicted_glucose_peak']}")
+
 if __name__ == "__main__":
     unittest.main()

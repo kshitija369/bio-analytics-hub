@@ -82,6 +82,47 @@ class BiometricNormalizer:
         return df
 
     @staticmethod
+    def calculate_glucose_velocity(df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Calculates glucose velocity (mg/dL/min) and trend labels.
+        Expects a DataFrame with a 'blood_glucose' column.
+        """
+        if 'blood_glucose' not in df.columns or df.empty:
+            return df
+            
+        # Ensure we have a 1min frequency for velocity calculation
+        # If the input isn't 1min, we'll resample temporarily or use diff() / time_delta
+        
+        # Simple diff over time
+        df = df.sort_index()
+        # Calculate velocity: change in glucose / change in minutes
+        # Since we usually resample to 1min in normalize_to_timeseries, 
+        # a simple diff() often suffices, but let's be robust.
+        
+        time_diffs = df.index.to_series().diff().dt.total_seconds() / 60.0
+        glucose_diffs = df['blood_glucose'].diff()
+        
+        df['glucose_velocity'] = glucose_diffs / time_diffs
+        
+        # Define trends based on velocity (mg/dL/min)
+        # DoubleUp: >= 2.0
+        # SingleUp: >= 1.0
+        # Flat: -1.0 to 1.0 (exclusive of boundaries if other labels catch them)
+        # SingleDown: <= -1.0
+        # DoubleDown: <= -2.0
+        
+        def get_trend(v):
+            if pd.isna(v): return "Stable"
+            if v >= 2.0: return "DoubleUp"
+            if v >= 1.0: return "SingleUp"
+            if v <= -2.0: return "DoubleDown"
+            if v <= -1.0: return "SingleDown"
+            return "Flat"
+            
+        df['glucose_trend'] = df['glucose_velocity'].apply(get_trend)
+        return df
+
+    @staticmethod
     def stitch_synthetic_day(history_df: pd.DataFrame, synthetic_df: pd.DataFrame) -> pd.DataFrame:
         """
         DT4H-Sim: Stitches historical observations with predicted 

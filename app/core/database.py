@@ -85,6 +85,7 @@ class BiometricDatabase:
                         dependent_value REAL,
                         z_score_deviation REAL,
                         circadian_alignment REAL,
+                        metabolic_load REAL,
                         subjective_rating INTEGER,
                         PRIMARY KEY (experiment_id, morning_date)
                     )

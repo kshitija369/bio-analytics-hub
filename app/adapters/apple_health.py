@@ -8,7 +8,8 @@ class AppleHealthProvider(BiometricProvider):
         "heart_rate": "8867-4",
         "heart_rate_variability": "80404-7",
         "mindful_minutes": "61150-9",   # Mindfulness duration
-        "sleep_score": "70182-1"        # Sleep quality proxy
+        "sleep_score": "70182-1",       # Sleep quality proxy
+        "blood_glucose": "2339-0"       # Blood glucose LOINC
     }
 
     def fetch_data(self, start_time: datetime, end_time: datetime) -> List[Dict[str, Any]]:
@@ -35,7 +36,8 @@ class AppleHealthProvider(BiometricProvider):
                 'heart_rate_variability': 'heart_rate_variability',
                 'heart_rate_variability_sdnn': 'heart_rate_variability',
                 'mindful_minutes': 'mindful_minutes',
-                'sleep_analysis': 'sleep_score' # Proxy mapping for simplicity
+                'sleep_analysis': 'sleep_score', # Proxy mapping for simplicity
+                'blood_glucose': 'blood_glucose'
             }
             
             if metric_name in target_metrics:

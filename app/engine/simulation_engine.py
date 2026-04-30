@@ -32,6 +32,7 @@ class SimulationEngine:
         
         base_hr = history_df['heart_rate'].mean() if 'heart_rate' in history_df.columns else 60.0
         base_hrv = history_df['heart_rate_variability'].mean() if 'heart_rate_variability' in history_df.columns else 50.0
+        base_glucose = history_df['blood_glucose'].iloc[-1] if 'blood_glucose' in history_df.columns else 95.0
         base_readiness = 80.0 # Standard baseline
 
         # 2. Calculate Vectors
@@ -40,6 +41,7 @@ class SimulationEngine:
         cold_plunge = any([e.get('event') == 'cold_exposure' for e in prospective_events])
         alcohol_drinks = sum([e.get('drinks', 0) for e in prospective_events if e.get('event') == 'alcohol'])
         late_meal = any([e.get('event') == 'meal' and '21:00' < str(e.get('time', '00:00')) for e in prospective_events])
+        high_carb_meal = any([e.get('event') == 'meal' and e.get('carbs', 0) > 50 for e in prospective_events])
 
         # 3. Physiological Impact Calculation
         # HRV Delta (Higher is Better)
@@ -49,6 +51,13 @@ class SimulationEngine:
         # HR Delta (Lower is Better)
         hr_delta = (alcohol_drinks * 5.0) + (4.0 if late_meal else 0)
         hr_delta -= (nature_time / 15 * 1.0) + (meditation_time / 10 * 0.5) + (2.0 if cold_plunge else 0)
+
+        # Glucose Simulation (Simplified Post-Prandial Curve)
+        glucose_peak = 0
+        if high_carb_meal:
+            glucose_peak = 80.0 # mg/dL spike
+        elif late_meal:
+            glucose_peak = 30.0
 
         # Readiness Score Impact
         readiness_delta = (nature_time / 15 * 2.0) + (meditation_time / 10 * 1.5) + (8.0 if cold_plunge else 0)
@@ -63,12 +72,17 @@ class SimulationEngine:
         dip_center = 6.0 + dip_shift
         hammock = -5.0 * np.exp(-((t_hours - dip_center)**2) / (2 * 3.0**2))
         
+        # Glucose curve (exponential rise and fall if meal is at start)
+        glucose_curve = glucose_peak * np.exp(-(t_hours - 1.0)**2 / (2 * 0.2**2))
+
         synthetic_hr = base_hr + hr_delta + hammock + np.random.normal(0, 0.5, len(idx))
         synthetic_hrv = base_hrv + hrv_delta + (-hammock * 1.5) + np.random.normal(0, 1.0, len(idx))
+        synthetic_glucose = base_glucose + glucose_curve + np.random.normal(0, 2.0, len(idx))
 
         df = pd.DataFrame(index=idx)
         df['heart_rate'] = synthetic_hr
         df['heart_rate_variability'] = synthetic_hrv
+        df['blood_glucose'] = synthetic_glucose
         df['is_synthetic'] = 1
         df['ts'] = df.index.map(lambda x: x.isoformat())
         
@@ -76,5 +90,6 @@ class SimulationEngine:
             "status": "success",
             "predicted_readiness": round(predicted_readiness, 1),
             "predicted_hrv_avg": round(base_hrv + hrv_delta, 1),
+            "predicted_glucose_peak": round(base_glucose + glucose_peak, 1),
             "time_series": df.reset_index().to_dict(orient="records")
         }

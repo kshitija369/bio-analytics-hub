@@ -17,6 +17,26 @@ class NAREvaluator:
         self.db = db or BiometricDatabase()
         self.repo = DimensionRepository(db=self.db)
 
+    def calculate_nighttime_metabolic_load(self, glucose_df: pd.DataFrame) -> float:
+        """
+        Calculates the Glucose Area Under Curve (AUC) for the nighttime period.
+        """
+        if glucose_df.empty:
+            return 0.0
+            
+        # Calculate AUC using trapezoidal rule (mg/dL * minutes)
+        # Assuming glucose_df is already filtered to the sleep window
+        # Reset index to get time delta in minutes from start
+        temp_df = glucose_df.copy()
+        temp_df['minutes'] = (temp_df.index - temp_df.index[0]).total_seconds() / 60.0
+        
+        # Use np.trapezoid (NumPy 2.0+) or fallback to np.trapz
+        if hasattr(np, 'trapezoid'):
+            auc = np.trapezoid(temp_df['val'], x=temp_df['minutes'])
+        else:
+            auc = np.trapz(temp_df['val'], x=temp_df['minutes'])
+        return float(auc)
+
     def evaluate(self, morning_date: date) -> Dict[str, Any]:
         """
         Main entry point for Nocturnal Autonomic Recovery daily evaluation.
@@ -31,6 +51,7 @@ class NAREvaluator:
         # 2. Extract Agnostic Dimensions
         hrv_df = self.repo.get_dimension_data("HRV", night_start, night_end)
         hr_df = self.repo.get_dimension_data("HeartRate", night_start, night_end)
+        glucose_df = self.repo.get_dimension_data("blood_glucose", night_start, night_end)
         readiness = self.repo.get_daily_aggregate("ReadinessScore", morning_date)
 
         if hrv_df.empty or hr_df.empty or readiness is None:
@@ -49,7 +70,10 @@ class NAREvaluator:
         dip_delta_hours = (min_hr_ts - three_am).total_seconds() / 3600
         circadian_alignment = dip_delta_hours
 
-        # 4. Z-Score Calculation (21-day HRV Baseline)
+        # 4. Metabolic Load Calculation (Glucose AUC)
+        metabolic_load_auc = self.calculate_nighttime_metabolic_load(glucose_df)
+
+        # 5. Z-Score Calculation (21-day HRV Baseline)
         baseline_start = morning_date - timedelta(days=22)
         baseline_end = morning_date - timedelta(days=1)
         
@@ -71,29 +95,32 @@ class NAREvaluator:
             if sigma > 0:
                 z_score = (current_hrv_avg - mu) / sigma
 
-        # 5. Persistence
+        # 6. Persistence
         self.save_result(
             morning_date, 
             independent_value=current_hrv_avg, 
             dependent_value=readiness,
             z_score=z_score,
-            circadian_alignment=circadian_alignment
+            circadian_alignment=circadian_alignment,
+            metabolic_load=metabolic_load_auc
         )
 
         return {
             "status": "success",
             "z_score": round(z_score, 2),
             "circadian_alignment": round(circadian_alignment, 2),
+            "metabolic_load_auc": round(metabolic_load_auc, 1),
             "dip_hr": min_hr_val,
             "dip_time": min_hr_ts.isoformat()
         }
 
-    def save_result(self, morning_date: date, independent_value, dependent_value, z_score, circadian_alignment):
+    def save_result(self, morning_date: date, independent_value, dependent_value, z_score, circadian_alignment, metabolic_load=0.0):
         self.db._ensure_initialized()
         with sqlite3.connect(self.db.working_db) as conn:
             conn.execute("""
                 INSERT OR REPLACE INTO research_results 
-                (experiment_id, morning_date, independent_value, dependent_value, z_score_deviation, circadian_alignment)
-                VALUES (?, ?, ?, ?, ?, ?)
-            """, (self.EXPERIMENT_ID, morning_date.isoformat(), independent_value, dependent_value, z_score, circadian_alignment))
+                (experiment_id, morning_date, independent_value, dependent_value, z_score_deviation, circadian_alignment, metabolic_load)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (self.EXPERIMENT_ID, morning_date.isoformat(), independent_value, dependent_value, z_score, circadian_alignment, metabolic_load))
         self.db._flush_to_persistence()
+

@@ -43,6 +43,34 @@ class AgentOrchestrator:
         self.ha.set_light_kelvin("light.bedroom", target_kelvin)
         print(f"  [Agent] Circadian Light Sync Complete: {target_kelvin}K")
 
+    def evaluate_metabolic_state(self, current_glucose: float, velocity: float, trend: str, current_time: Optional[datetime] = None):
+        """
+        Monitors for late-night metabolic excursions and triggers 
+        preventative 'Metabolic Clearance' nudges.
+        """
+        now = current_time or datetime.now()
+        hour = now.hour
+        
+        print(f"--- [Agent] Evaluating Metabolic State: {current_glucose} mg/dL ({trend}) ---")
+        
+        # Trigger: Late evening (after 8 PM), high glucose, and rising
+        if hour >= 20 and current_glucose > 130 and "Up" in trend:
+            nudge_msg = (
+                f"Your glucose is rising late ({current_glucose} mg/dL, {trend}). "
+                "To protect your autonomic recovery and tomorrow's focus, "
+                "take a 15-minute walk now to clear this spike."
+            )
+            print(f"  [Agent] METABOLIC TRIGGER: {nudge_msg}")
+            
+            # Action & Provenance
+            self._execute_action(nudge_msg)
+            self.provenance.log_decision(
+                agent_id="Metabolic-Guardian-001",
+                context={"glucose": current_glucose, "trend": trend, "hour": hour},
+                reasoning="Late glycemic load detected. High risk for autonomic suppression.",
+                action="Preventative Metabolic Nudge"
+            )
+
     def start_listening(self):
         """
         Initializes the Pub/Sub subscriber and processes anomaly events.
