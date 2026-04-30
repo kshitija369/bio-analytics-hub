@@ -4,6 +4,32 @@ The **Bio-Analytics Hub** is an advanced, provider-independent physiological res
 
 ---
 
+## 🎨 The Longevity OS Experience (Dual UI)
+
+The system features a **Dual-Interface Strategy** designed to balance "Calm Tech" with "High-Resolution Research."
+
+### 1. The Ambient View (Center of the Cyclone)
+*   **Purpose:** A minimalist, low-friction interface for real-time biological guidance.
+*   **Features:** Displays high-level "Agent States" (e.g., "Biological Debt") and immediate corrective actions (e.g., "Suggesting a 15-min walk").
+*   **Predictive Sandbox:** Integrated slider for simulating the immediate impact of interventions on tomorrow's readiness.
+
+![Ambient View](docs/images/ambient_view.png)
+
+### 2. The Analytical Hub (Continuous Monitoring)
+*   **Purpose:** A high-density dashboard for monitoring your Multi-Scale Digital Twin (MSDT).
+*   **Features:** Real-time tracking of biological age, chronological age, and "Recovery Deviation."
+*   **Study Management:** Direct access to active physiological research protocols (e.g., Sleep Recovery Index).
+
+![Analytical Hub](docs/images/analytical_hub.png)
+
+### 3. Sleep Recovery Index (Experiment Detail)
+*   **Purpose:** Deep-dive analysis into the relationship between overnight recovery and next-day readiness.
+*   **Predictive Simulation:** Sidebar for modeling the compound effects of stressors (Alcohol, Late Meals) and buffers (Sauna, Breathwork) on your 7-day recovery curve.
+
+![Sleep Recovery Index](docs/images/sleep_recovery_index.png)
+
+---
+
 ## 🏛 Macro Architecture: The Big Picture
 
 The system operates as a **Closed-Loop Control System**, moving through four distinct layers: **Perception**, **Ingestion**, **Reasoning**, and **Action**.
@@ -82,7 +108,8 @@ The platform has successfully transitioned through the following architectural m
 | **Predictive MSDT** | Phase 2 | ✅ Live | Vector-based 24h physiological forecasting. |
 | **Secular Witness** | Phase 3 | ✅ Live | Event-driven Agent Orchestrator & Gemini Reasoning. |
 | **Existential Flux** | Phase 4 | ✅ Live | Provenance Ledger (PA-XDT) for verifiable AI decisions. |
-| **Longevity OS** | Phase 5 | ✅ Live | Home Assistant integration for circadian lighting. |
+| **Longevity OS UI** | Phase 5 | ✅ Live | Dual UI (Ambient vs Analytical) with Predictive Sandbox. |
+| **Mobile Edge** | Phase 6 | 🚧 Dev | Native watchOS HR streaming and haptic actuation. |
 
 ---
 
